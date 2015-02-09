@@ -72,6 +72,18 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataViewer.Designer.vb">
+      <DependentUpon>DataViewer.vb</DependentUpon>
+    </Compile>
+    <Compile Include="DataViewer.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DisplayWindow.Designer.vb">
+      <DependentUpon>DisplayWindow.vb</DependentUpon>
+    </Compile>
+    <Compile Include="DisplayWindow.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Main.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -96,6 +108,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="DisplayWindow.resx">
+      <DependentUpon>DisplayWindow.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Main.resx">
       <DependentUpon>Main.vb</DependentUpon>
     </EmbeddedResource>

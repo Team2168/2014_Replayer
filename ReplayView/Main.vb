@@ -35,47 +35,37 @@
 
         For Each line As String In replayFile
 
-            If Display Then
-                Dim displayArray() As String = {"", "", "", "", "", "", "", "", "", "", ""}
-                displayArray(0) = line.Split(":")(0).Split(",")(0)
-                displayArray(3) = "Unavalibal"
+            Dim displayArray() As String = {"", "", "", "", "", "", "", "", "", "", ""}
+            displayArray(0) = line.Split(":")(0).Split(",")(0)
+            displayArray(3) = "Unavalibal"
 
-                displayArray(1) = line.Split(":")(0).Split(",")(1)
-                displayArray(2) = "Unavalibal"
+            displayArray(1) = line.Split(":")(0).Split(",")(1)
+            displayArray(2) = "Unavalibal"
 
-                displayArray(4) = line.Split(":")(1).Split(",")(0)
-                displayArray(7) = CDbl(displayArray(4) - prevEncoderRight)
-                prevEncoderRight = CDbl(displayArray(4))
+            displayArray(4) = line.Split(":")(1).Split(",")(0)
+            displayArray(7) = CDbl(displayArray(4) - prevEncoderRight)
+            prevEncoderRight = CDbl(displayArray(4))
 
-                displayArray(5) = line.Split(":")(1).Split(",")(1)
-                displayArray(8) = CDbl(displayArray(1) - prevEncoderLeft)
-                prevEncoderRight = CDbl(displayArray(5))
+            displayArray(5) = line.Split(":")(1).Split(",")(1)
+            displayArray(8) = CDbl(displayArray(1) - prevEncoderLeft)
+            prevEncoderRight = CDbl(displayArray(5))
 
-                displayArray(6) = line.Split(":")(2)
-                displayArray(9) = CDbl(displayArray(6) - prevGyroAngle)
-                prevGyroAngle = CDbl(displayArray(6))
+            displayArray(6) = line.Split(":")(2)
+            displayArray(9) = CDbl(displayArray(6) - prevGyroAngle)
+            prevGyroAngle = CDbl(displayArray(6))
 
-
-                Dim listItem As New ListViewItem(displayArray)
-                ListView1.Items.Add(listItem)
-
-                ListView1.EnsureVisible(ListView1.Items.Count - 1)
-                ListView1.Update()
-
-                'lbProgress.Text = CStr(Math.Round(count / max, 0))
-                'count += 1
-            End If
-            lbProgress.Text = CStr(Math.Round(count / max, 0) * 100)
-            ProgressBar1.Value = Math.Round(count / max, 0) * 100
+            lbProgress.Text = CStr(Math.Round(count / max, 3) * 100) + "%"
+            ProgressBar1.Value = Math.Round(count / max, 3) * 100
             count += 1
+            'Threading.Thread.Sleep(1)
         Next
 
-        MsgBox(count)
-        MsgBox(max)
+        btnStartReplay.Enabled = True
+        btnStartConversion.Enabled = False
 
     End Sub
 
-    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         If (Display) Then
             Display = False
         Else
@@ -83,7 +73,9 @@
         End If
     End Sub
 
-    Private Sub lbProgress_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lbProgress.Click
-
+    Private Sub btnStartReplay_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnStartReplay.Click
+        DisplayWindow.Show()
+        Me.Hide()
     End Sub
+
 End Class
