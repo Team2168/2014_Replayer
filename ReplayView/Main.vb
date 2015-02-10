@@ -33,6 +33,18 @@
         Dim count As Integer = 0
         Dim max As Integer = replayFile.Count
 
+        '0 | Right Motor Data
+        '1 | Left Motor Data
+        '2 | Left Voltage
+        '3 | Right Voltage
+        '4 | Encoder Right
+        '5 | Encoder Left 
+        '6 | Encoder Right Difference
+        '7 | Encoder Left Difference
+        '8 | Gryo Angle
+        '9 | Gyro Angle Difference
+
+
         For Each line As String In replayFile
 
             Dim displayArray() As String = {"", "", "", "", "", "", "", "", "", "", ""}
@@ -47,8 +59,8 @@
             prevEncoderRight = CDbl(displayArray(4))
 
             displayArray(5) = line.Split(":")(1).Split(",")(1)
-            displayArray(8) = CDbl(displayArray(1) - prevEncoderLeft)
-            prevEncoderRight = CDbl(displayArray(5))
+            displayArray(8) = CDbl(displayArray(5) - prevEncoderLeft)
+            prevEncoderLeft = CDbl(displayArray(5))
 
             displayArray(6) = line.Split(":")(2)
             displayArray(9) = CDbl(displayArray(6) - prevGyroAngle)
@@ -57,7 +69,8 @@
             lbProgress.Text = CStr(Math.Round(count / max, 3) * 100) + "%"
             ProgressBar1.Value = Math.Round(count / max, 3) * 100
             count += 1
-            'Threading.Thread.Sleep(1)
+            DrawingData.Data.Add(displayArray)
+
         Next
 
         btnStartReplay.Enabled = True
@@ -75,6 +88,8 @@
 
     Private Sub btnStartReplay_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnStartReplay.Click
         DisplayWindow.Show()
+        DataViewer.Show()
+
         Me.Hide()
     End Sub
 

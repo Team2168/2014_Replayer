@@ -49,6 +49,8 @@
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="DevComponents.DotNetBar2, Version=10.0.0.3, Culture=neutral, PublicKeyToken=c39c3242a43eee2b, processorArchitecture=MSIL" />
+    <Reference Include="DevComponents.Instrumentation, Version=10.0.0.3, Culture=neutral, PublicKeyToken=bc4a9d761ea44ef0, processorArchitecture=MSIL" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
@@ -84,6 +86,8 @@
     <Compile Include="DisplayWindow.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="DrawingData.vb" />
+    <Compile Include="Equation.vb" />
     <Compile Include="Main.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -108,6 +112,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="DataViewer.resx">
+      <DependentUpon>DataViewer.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="DisplayWindow.resx">
       <DependentUpon>DisplayWindow.vb</DependentUpon>
     </EmbeddedResource>

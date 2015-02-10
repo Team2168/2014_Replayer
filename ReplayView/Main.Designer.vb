@@ -36,7 +36,7 @@ Partial Class frmMain
         Me.btnStartReplay.Name = "btnStartReplay"
         Me.btnStartReplay.Size = New System.Drawing.Size(75, 23)
         Me.btnStartReplay.TabIndex = 2
-        Me.btnStartReplay.Text = "Start Replay"
+        Me.btnStartReplay.Text = "Continue" & Global.Microsoft.VisualBasic.ChrW(13) & Global.Microsoft.VisualBasic.ChrW(10)
         Me.btnStartReplay.UseVisualStyleBackColor = True
         '
         'btnStartConversion
