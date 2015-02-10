@@ -1,17 +1,5 @@
 ﻿Module DrawingData
 
-    'Array Elements in Data(X)() Array
-    '0 | Right Motor Data
-    '1 | Left Motor Data
-    '2 | Left Voltage
-    '3 | Right Voltage
-    '4 | Encoder Right
-    '5 | Encoder Left 
-    '6 | Encoder Right Difference
-    '7 | Encoder Left Difference
-    '8 | Gryo Angle
-    '9 | Gyro Angle Difference
-
     Public Const PIXELS_PER_FOOT As Integer = 25
     Public FieldRectange As Rectangle = New Rectangle(New Point(10, 10), New Size(27 * PIXELS_PER_FOOT, 27 * PIXELS_PER_FOOT))
     Public HalfStep As Rectangle = New Rectangle(New Point(10, 10), New Size(27 * PIXELS_PER_FOOT, 1.08 * PIXELS_PER_FOOT))
@@ -28,6 +16,8 @@
 
     Private PositiveMotorValueEquation As Equation
     Private NegativeMotorValueEquation As Equation
+
+    Private ScaleWindowSlop As Double = (173 / 174)
 
     Public Function MotorValueToXYPoint(ByVal MotorValue As Double, ByVal Tick As Integer) As Point
 
@@ -93,5 +83,14 @@
         Return h
 
     End Function
+
+    Public Sub DrawPoint(ByRef g As Graphics, ByVal p As Point)
+        'g.DrawEllipse(Pens.White, New Rectangle(New Point(p.X + 100, p.Y + 100), New Size(2, 2)))
+        g.DrawEllipse(Pens.White, New Rectangle(New Point(p.X + 348, p.Y + 346), New Size(1, 1)))
+    End Sub
+
+    Public Sub DrawSegment(ByRef g As Graphics, ByVal p1 As Point, ByVal p2 As Point)
+        g.DrawLine(Pens.Purple, New Point(p1.X + 348, p1.Y + 346), New Point(p2.X + 348, p2.Y + 346))
+    End Sub
 
 End Module

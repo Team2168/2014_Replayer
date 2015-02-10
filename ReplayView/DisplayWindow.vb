@@ -1,12 +1,12 @@
 ﻿Public Class DisplayWindow
 
+    Public g As Graphics
+
     Private Sub DisplayWindow_FormClosed(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosedEventArgs) Handles Me.FormClosed
         frmMain.Close()
     End Sub
 
     Private Sub DisplayWindow_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
-
-        Dim g As Graphics = Me.CreateGraphics
 
         'Draw the field Outline
         'g.DrawRectangle(Pens.Red, FieldRectange)
@@ -27,5 +27,12 @@
         'g.DrawRectangle(Pens.Blue, DrawingData.Platform1)
         'g.DrawRectangle(Pens.Blue, DrawingData.Platform2)
 
+    End Sub
+
+    Private Sub DisplayWindow_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        g = Panel1.CreateGraphics()
+    End Sub
+
+    Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs)
     End Sub
 End Class

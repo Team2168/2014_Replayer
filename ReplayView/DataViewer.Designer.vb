@@ -61,6 +61,7 @@ Partial Class DataViewer
         Me.GaugeControl1 = New DevComponents.Instrumentation.GaugeControl()
         Me.gcLeftSpeed = New DevComponents.Instrumentation.GaugeControl()
         Me.gcRightSpeed = New DevComponents.Instrumentation.GaugeControl()
+        Me.Panel1 = New System.Windows.Forms.Panel()
         CType(Me.gcRightMotor, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.gcLeftMotor, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.GaugeControl1, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -298,9 +299,9 @@ Partial Class DataViewer
         GaugeSection3.Name = "Section1"
         GaugeLinearScale1.Sections.AddRange(New DevComponents.Instrumentation.GaugeSection() {GaugeSection3})
         Me.gcLeftSpeed.LinearScales.AddRange(New DevComponents.Instrumentation.GaugeLinearScale() {GaugeLinearScale1})
-        Me.gcLeftSpeed.Location = New System.Drawing.Point(2, 114)
+        Me.gcLeftSpeed.Location = New System.Drawing.Point(2, 41)
         Me.gcLeftSpeed.Name = "gcLeftSpeed"
-        Me.gcLeftSpeed.Size = New System.Drawing.Size(87, 353)
+        Me.gcLeftSpeed.Size = New System.Drawing.Size(87, 426)
         Me.gcLeftSpeed.TabIndex = 8
         Me.gcLeftSpeed.Text = "GaugeControl2"
         '
@@ -342,17 +343,26 @@ Partial Class DataViewer
         GaugeSection4.Name = "Section1"
         GaugeLinearScale2.Sections.AddRange(New DevComponents.Instrumentation.GaugeSection() {GaugeSection4})
         Me.gcRightSpeed.LinearScales.AddRange(New DevComponents.Instrumentation.GaugeLinearScale() {GaugeLinearScale2})
-        Me.gcRightSpeed.Location = New System.Drawing.Point(597, 114)
+        Me.gcRightSpeed.Location = New System.Drawing.Point(597, 41)
         Me.gcRightSpeed.Name = "gcRightSpeed"
-        Me.gcRightSpeed.Size = New System.Drawing.Size(87, 353)
+        Me.gcRightSpeed.Size = New System.Drawing.Size(87, 426)
         Me.gcRightSpeed.TabIndex = 9
         Me.gcRightSpeed.Text = "GaugeControl3"
+        '
+        'Panel1
+        '
+        Me.Panel1.BackColor = System.Drawing.Color.Black
+        Me.Panel1.Location = New System.Drawing.Point(95, 41)
+        Me.Panel1.Name = "Panel1"
+        Me.Panel1.Size = New System.Drawing.Size(496, 384)
+        Me.Panel1.TabIndex = 10
         '
         'DataViewer
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(696, 693)
+        Me.Controls.Add(Me.Panel1)
         Me.Controls.Add(Me.gcRightSpeed)
         Me.Controls.Add(Me.gcLeftSpeed)
         Me.Controls.Add(Me.GaugeControl1)
@@ -383,4 +393,5 @@ Partial Class DataViewer
     Friend WithEvents GaugeControl1 As DevComponents.Instrumentation.GaugeControl
     Friend WithEvents gcLeftSpeed As DevComponents.Instrumentation.GaugeControl
     Friend WithEvents gcRightSpeed As DevComponents.Instrumentation.GaugeControl
+    Friend WithEvents Panel1 As System.Windows.Forms.Panel
 End Class
