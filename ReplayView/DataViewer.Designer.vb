@@ -22,6 +22,7 @@ Partial Class DataViewer
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Me.components = New System.ComponentModel.Container()
         Dim GaugeCircularScale1 As DevComponents.Instrumentation.GaugeCircularScale = New DevComponents.Instrumentation.GaugeCircularScale()
         Dim GaugePointer1 As DevComponents.Instrumentation.GaugePointer = New DevComponents.Instrumentation.GaugePointer()
         Dim GaugeRange1 As DevComponents.Instrumentation.GaugeRange = New DevComponents.Instrumentation.GaugeRange()
@@ -61,7 +62,7 @@ Partial Class DataViewer
         Me.GaugeControl1 = New DevComponents.Instrumentation.GaugeControl()
         Me.gcLeftSpeed = New DevComponents.Instrumentation.GaugeControl()
         Me.gcRightSpeed = New DevComponents.Instrumentation.GaugeControl()
-        Me.Panel1 = New System.Windows.Forms.Panel()
+        Me.ZedGraphControl1 = New ZedGraph.ZedGraphControl()
         CType(Me.gcRightMotor, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.gcLeftMotor, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.GaugeControl1, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -94,7 +95,7 @@ Partial Class DataViewer
         '
         Me.lbCurrentTime.AutoSize = True
         Me.lbCurrentTime.Font = New System.Drawing.Font("Microsoft Sans Serif", 14.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbCurrentTime.Location = New System.Drawing.Point(629, 12)
+        Me.lbCurrentTime.Location = New System.Drawing.Point(593, 14)
         Me.lbCurrentTime.Name = "lbCurrentTime"
         Me.lbCurrentTime.Size = New System.Drawing.Size(55, 24)
         Me.lbCurrentTime.TabIndex = 4
@@ -319,7 +320,7 @@ Partial Class DataViewer
         GaugeLinearScale2.Location = CType(resources.GetObject("GaugeLinearScale2.Location"), System.Drawing.PointF)
         GaugeLinearScale2.MaxPin.Name = "MaxPin"
         GaugeLinearScale2.MaxPin.Visible = False
-        GaugeLinearScale2.MaxValue = 50.0R
+        GaugeLinearScale2.MaxValue = 15.0R
         GaugeLinearScale2.MinPin.Name = "MinPin"
         GaugeLinearScale2.MinPin.Visible = False
         GaugeLinearScale2.Name = "Scale1"
@@ -349,20 +350,26 @@ Partial Class DataViewer
         Me.gcRightSpeed.TabIndex = 9
         Me.gcRightSpeed.Text = "GaugeControl3"
         '
-        'Panel1
+        'ZedGraphControl1
         '
-        Me.Panel1.BackColor = System.Drawing.Color.Black
-        Me.Panel1.Location = New System.Drawing.Point(95, 41)
-        Me.Panel1.Name = "Panel1"
-        Me.Panel1.Size = New System.Drawing.Size(496, 384)
-        Me.Panel1.TabIndex = 10
+        Me.ZedGraphControl1.Location = New System.Drawing.Point(95, 41)
+        Me.ZedGraphControl1.Name = "ZedGraphControl1"
+        Me.ZedGraphControl1.ScrollGrace = 0.0R
+        Me.ZedGraphControl1.ScrollMaxX = 0.0R
+        Me.ZedGraphControl1.ScrollMaxY = 0.0R
+        Me.ZedGraphControl1.ScrollMaxY2 = 0.0R
+        Me.ZedGraphControl1.ScrollMinX = 0.0R
+        Me.ZedGraphControl1.ScrollMinY = 0.0R
+        Me.ZedGraphControl1.ScrollMinY2 = 0.0R
+        Me.ZedGraphControl1.Size = New System.Drawing.Size(496, 384)
+        Me.ZedGraphControl1.TabIndex = 10
         '
         'DataViewer
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(696, 693)
-        Me.Controls.Add(Me.Panel1)
+        Me.Controls.Add(Me.ZedGraphControl1)
         Me.Controls.Add(Me.gcRightSpeed)
         Me.Controls.Add(Me.gcLeftSpeed)
         Me.Controls.Add(Me.GaugeControl1)
@@ -393,5 +400,5 @@ Partial Class DataViewer
     Friend WithEvents GaugeControl1 As DevComponents.Instrumentation.GaugeControl
     Friend WithEvents gcLeftSpeed As DevComponents.Instrumentation.GaugeControl
     Friend WithEvents gcRightSpeed As DevComponents.Instrumentation.GaugeControl
-    Friend WithEvents Panel1 As System.Windows.Forms.Panel
+    Friend WithEvents ZedGraphControl1 As ZedGraph.ZedGraphControl
 End Class

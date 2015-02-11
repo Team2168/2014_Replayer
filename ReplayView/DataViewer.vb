@@ -1,18 +1,32 @@
-﻿
+﻿Imports ZedGraph
 
 Public Class DataViewer
 
-    Dim g As Graphics
-    Dim tg As Graphics
+    'Dim tg As Graphics
 
-    Dim RightMotorGraphics As Graphics
-    Dim LeftMotorGraphics As Graphics
-
-    Public pnl As Panel
+    Dim pointList As New PointPairList
+    Dim myPane As GraphPane
 
     Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
         bgwDrawElements.RunWorkerAsync()
-        tg = DisplayWindow.Panel1.CreateGraphics
+        'tg = DisplayWindow.CreateGraphics
+
+        myPane = ZedGraphControl1.GraphPane
+        ' Set the titles and axis labels
+        myPane.Title.Text = "Robot Chart Recreation"
+        myPane.XAxis.Title.Text = "Inches"
+        myPane.YAxis.Title.Text = "Inches"
+
+        myPane.YAxis.Scale.MinAuto = True
+        myPane.YAxis.Scale.MaxAuto = True
+
+        myPane.XAxis.Scale.MinAuto = True
+        myPane.XAxis.Scale.MaxAuto = True
+
+        Dim myC As LineItem
+        myC = myPane.AddCurve("RobotData", pointList, Color.Red)
+        pointList.Add(0, 0)
+        ZedGraphControl1.Invalidate()
     End Sub
 
     Private Sub bgwDrawElements_DoWork(ByVal sender As System.Object, ByVal e As System.ComponentModel.DoWorkEventArgs) Handles bgwDrawElements.DoWork
@@ -43,28 +57,29 @@ Public Class DataViewer
             x += PrevPoint.X
             y += PrevPoint.Y
 
-            DrawSegment(g, PrevPoint, New Point(x, y))
+            'DrawSegment(g, PrevPoint, New Point(x, y))
 
-            DrawSegment(tg, PrevPoint, New Point(x, y))
-            DrawPoint(tg, PrevPoint)
-
-            DrawPoint(g, PrevPoint)
+            'DrawSegment(tg, PrevPoint, New Point(x, y))
+            'DrawPoint(g, PrevPoint)
             PrevPoint = New Point(x, y)
+            'DrawPoint(tg, PrevPoint)
 
+            pointList.Add(New PointPair(x, y))
+            ZedGraphControl1.RestoreScale(myPane)
+            ZedGraphControl1.Invalidate()
+ 
             Debug.Print(CStr(x) + "," + CStr(y))
-
-
-            pnl = Panel1
 
             MillisecondsElapsed += 20
             TimeElapsed = Math.Round((ConvertMillisecondsToSeconds(MillisecondsElapsed) / 60), 2)
             lbCurrentTime.Text = CStr(TimeElapsed) + "min"
-            Threading.Thread.Sleep(20)
+            'Threading.Thread.Sleep(20)
+
         Next
 
     End Sub
 
     Private Sub DataViewer_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
-        g = Panel1.CreateGraphics
+
     End Sub
 End Class

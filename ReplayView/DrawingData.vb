@@ -86,7 +86,7 @@
 
     Public Sub DrawPoint(ByRef g As Graphics, ByVal p As Point)
         'g.DrawEllipse(Pens.White, New Rectangle(New Point(p.X + 100, p.Y + 100), New Size(2, 2)))
-        g.DrawEllipse(Pens.White, New Rectangle(New Point(p.X + 348, p.Y + 346), New Size(1, 1)))
+        g.DrawEllipse(Pens.Purple, New Rectangle(New Point(p.X + 348, p.Y + 346), New Size(3, 3)))
     End Sub
 
     Public Sub DrawSegment(ByRef g As Graphics, ByVal p1 As Point, ByVal p2 As Point)
