@@ -25,6 +25,7 @@ Public Class DataViewer
 
         Dim myC As LineItem
         myC = myPane.AddCurve("RobotData", pointList, Color.Red)
+        myC.Line.IsVisible = True
         pointList.Add(0, 0)
         ZedGraphControl1.Invalidate()
     End Sub
@@ -34,7 +35,7 @@ Public Class DataViewer
         Dim MillisecondsElapsed As Integer = 0
         Dim TimeElapsed As Double = 0.0
 
-        Dim PrevPoint As New Point(0, 0)
+        Dim startPoint As New Point(0, 0)
 
         For Each displayData In DrawingData.Data
 
@@ -48,26 +49,52 @@ Public Class DataViewer
 
             Dim totalDistanceTraveled As Double = Math.Abs((CDbl(displayData(8)) + CDbl(displayData(7))) / 2)
 
-            Dim x As Double
-            Dim y As Double
+            Dim x As Double = startPoint.X
+            Dim y As Double = startPoint.Y
+            ' Dim R = 6371
+            'Dim brng = CDbl(RawHeadingToNormalHeading(displayData(6)))
 
-            x = (0.5) * Math.Pow(totalDistanceTraveled, 2) * Math.Cos(RawHeadingToNormalHeading(displayData(6)))
-            y = (0.5) * Math.Pow(totalDistanceTraveled, 2) * Math.Sin(RawHeadingToNormalHeading(displayData(6)))
+            'x = DegreesToRadians(x)
+            'y = DegreesToRadians(y)
 
-            x += PrevPoint.X
-            y += PrevPoint.Y
+            'Dim x2 As Double
+            'Dim y2 As Double
 
-            'DrawSegment(g, PrevPoint, New Point(x, y))
+            'x2 = Math.Asin(Math.Sin(x) * Math.Cos(totalDistanceTraveled / R) + _
+            '              Math.Cos(x) * Math.Sin(totalDistanceTraveled / R) * Math.Cos(brng)) + x
 
-            'DrawSegment(tg, PrevPoint, New Point(x, y))
-            'DrawPoint(g, PrevPoint)
-            PrevPoint = New Point(x, y)
-            'DrawPoint(tg, PrevPoint)
+            'y2 = y + Math.Atan2(Math.Sin(brng) * Math.Sin(totalDistanceTraveled / R) * Math.Cos(x), Math.Cos(totalDistanceTraveled / R) - Math.Sin(x) * Math.Sin(x)) + y
+
+            'Process.Start("run.py", CStr(x) + " " + CStr(y) + " " + CStr(RawHeadingToNormalHeading(displayData(6))) + " " + CStr(totalDistanceTraveled
+            '              ))
+            'Shell("run.py " + CStr(x) + " " + CStr(y) + " " + CStr(RawHeadingToNormalHeading(displayData(6))))
+
+            'If totalDistanceTraveled > 0 Then
+            ' x = RadiansToDegrees((totalDistanceTraveled / 6371) * Math.Cos(DegreesToRadians(RawHeadingToNormalHeading(displayData(6))))) + startPoint.X
+            'y = RadiansToDegrees((totalDistanceTraveled / (6371 * Math.Sin((x)))) * Math.Sin(DegreesToRadians(RawHeadingToNormalHeading(displayData(6))))) + startPoint.Y
+            'Debug.Print("new point plotted")
+            'End If
+
+            'x = ((totalDistanceTraveled / 6371) * Math.Cos(Math.PI * CDbl(RawHeadingToNormalHeading(displayData(6)))) / 180) + startPoint.X
+            'y = (totalDistanceTraveled / 6371 * Math.Sin((Math.PI * CDbl(x)) / 180)) * Math.Sin(RawHeadingToNormalHeading(displayData(6))) + startPoint.Y
+
+            'startPoint.X = x2
+            'startPoint.Y = y2
+
+            x += RadiansToDegrees((0.5) * Math.Pow(totalDistanceTraveled, 2) * Math.Cos(DegreesToRadians(RawHeadingToNormalHeading(displayData(6)))))
+            y += RadiansToDegrees((0.5) * Math.Pow(totalDistanceTraveled, 2) * Math.Sin(DegreesToRadians(RawHeadingToNormalHeading(displayData(6)))))
+
+            'x += startPoint.X
+            'y += startPoint.Y
+
+            startPoint.X = x
+            startPoint.Y = y
 
             pointList.Add(New PointPair(x, y))
             ZedGraphControl1.RestoreScale(myPane)
+
             ZedGraphControl1.Invalidate()
- 
+
             Debug.Print(CStr(x) + "," + CStr(y))
 
             MillisecondsElapsed += 20
@@ -79,7 +106,22 @@ Public Class DataViewer
 
     End Sub
 
-    Private Sub DataViewer_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
 
-    End Sub
+    Function RadiansToDegrees(ByVal value As Double) As Integer
+        Try
+            Return (180 * value) / Math.PI
+        Catch ex As Exception
+            Return 0
+        End Try
+    End Function
+
+
+    Function DegreesToRadians(ByVal value As Double) As Double
+        If (value * (Math.PI / 180)) = 0 Then
+            Return 0
+        Else
+            Return value * (Math.PI / 180)
+        End If
+    End Function
+
 End Class
