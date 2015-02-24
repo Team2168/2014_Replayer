@@ -4,7 +4,9 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import javax.swing.*;
@@ -18,9 +20,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.InputMismatchException;
-import java.util.Scanner;
-import java.util.ArrayList;
+import java.util.*;
 
 class LogFileData {
     public static ArrayList<DataPoint> PointData = new ArrayList<DataPoint>();
@@ -360,7 +360,6 @@ public class DiagnosticTools {
 
         File folder = new File("./logs/");
         File[] listOfFiles = folder.listFiles();
-
         for (int i = 0; i < listOfFiles.length; i++) {
             if (listOfFiles[i].isFile()) {
                 LogFiles.add(listOfFiles[i].getName());
@@ -394,9 +393,13 @@ class DiagnosticViewer extends JFrame{
     private JLabel leftSpeed;
     private JLabel rightSpeed;
     private JLabel optionsDialogFrameDelay;
+    private JLabel optionsGlobalMotorScaleDomain;
+    private JLabel optionsGlobalMotorScaleRange;
 
     // ******* TextAreas ******* \\
     private JTextField optionsDialogFrameDelayInput;
+    private JTextField optionsDialogGlobalMotorScaleDomain;
+    private JTextField optionsDialogGlobalMotorScaleRange;
 
     // ******* Buttons ******** \\
     private JButton btnStart;
@@ -433,13 +436,14 @@ class DiagnosticViewer extends JFrame{
     private boolean isPaused = false;
     private int frameDelay = 20;
 
-
+    // Chart Scale Options
+    ValueAxis rightMotorScale;
+    ValueAxis leftMotorScale;
     /**
      * Default Constructor
      * Sets up simple window properties
      */
     public DiagnosticViewer() {
-
         setTitle("2168 Diagnostic Tools");
         setLayout(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -487,6 +491,16 @@ class DiagnosticViewer extends JFrame{
         );
         optionsDialog.add(optionsDialogFrameDelayInput);
 
+        optionsGlobalMotorScaleDomain = new JLabel("Motor Scale: ");
+        optionsGlobalMotorScaleDomain.setSize(optionsGlobalMotorScaleDomain.getPreferredSize().getSize());
+        optionsGlobalMotorScaleDomain.setLocation(10, 35);
+        optionsDialog.add(optionsGlobalMotorScaleDomain);
+
+        optionsDialogGlobalMotorScaleDomain = new JTextField("X1-X2");
+        optionsDialogGlobalMotorScaleDomain.setSize(50, 20);
+        optionsDialogGlobalMotorScaleDomain.setLocation(10 + optionsGlobalMotorScaleDomain.getWidth() + 8, 32);
+        optionsDialog.add(optionsDialogGlobalMotorScaleDomain);
+
         btnOptionsResetPlayBack = new JButton("Reset Playback");
         btnOptionsResetPlayBack.addActionListener(new ActionListener() {
             @Override
@@ -504,6 +518,19 @@ class DiagnosticViewer extends JFrame{
             public void actionPerformed(ActionEvent e) {
                 frameDelay = Integer.parseInt(optionsDialogFrameDelayInput.getText());
                 setEnabled(true);
+
+                rightMotorScale.setRange(
+                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[0]),
+                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[1])
+                );
+                leftMotorScale.setRange(
+                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[0]),
+                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[1])
+                );
+
+                ((XYPlot) leftMotorChart_1.getPlot()).setDomainAxis(leftMotorScale);
+                ((XYPlot) rightMotorChart_1.getPlot()).setDomainAxis(rightMotorScale);
+
                 optionsDialog.dispose();
             }
         });
@@ -601,8 +628,6 @@ class DiagnosticViewer extends JFrame{
         gyroAngle.setLocation(485, 450);
         add(gyroAngle);
 
-
-
         // Location Plot Chart
         {
             // Start initializing of Robot Location Series
@@ -622,7 +647,7 @@ class DiagnosticViewer extends JFrame{
                     PlotOrientation.VERTICAL,
                     false,
                     false,
-                    false
+                    true
             );
             locationChart.setBackgroundPaint(getBackground());
 
@@ -681,7 +706,7 @@ class DiagnosticViewer extends JFrame{
                     "",
                     rightMotorDataCollection_1,
                     PlotOrientation.VERTICAL,
-                    true,
+                    false,
                     false,
                     false
             );
@@ -689,11 +714,9 @@ class DiagnosticViewer extends JFrame{
 
             rightMotorPanel_1 = new ChartPanel(rightMotorChart_1);
             rightMotorPanel_1.setSize(300, 200);
-            rightMotorPanel_1.setLocation(710, 435);
+            rightMotorPanel_1.setLocation(0, 235);
             add(rightMotorPanel_1);
         }
-
-
 
     }
 
@@ -723,6 +746,8 @@ class DiagnosticViewer extends JFrame{
                 leftMotorSeriesCurrent_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getLeftCurrent()[0]);
                 rightMotorSeriesVoltage_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getRightVoltage()[0]);
                 rightMotorSeriesCurrent_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getRightCurrent()[0]);
+
+
 
                 DecimalFormat df = new DecimalFormat("####.00");
                 String heading = df.format(LogFileData.PointData.get(i).getHeading());
