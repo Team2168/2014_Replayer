@@ -8,7 +8,6 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
-import sun.rmi.log.ReliableLog;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -399,6 +398,7 @@ class DiagnosticViewer extends JFrame{
     private JLabel optionsDialogFrameDelay;
     private JLabel optionsGlobalMotorScaleDomain;
     private JLabel trendAnalysisSelectTrend;
+    private JLabel trendFilesToBeAnalyzed;
 
     // ******* TextAreas ******* \\
     private JTextField optionsDialogFrameDelayInput;
@@ -478,16 +478,48 @@ class DiagnosticViewer extends JFrame{
     }
 
     /**
+     * Recurse through all the files located in the "trends/" folder.
+     *
+     * @return All files found in directory
+     */
+    public static ArrayList<String> GetTrendFiles() {
+        ArrayList<String> LogFiles = new ArrayList<String>();
+
+        File folder = new File("./trends/");
+        File[] listOfFiles = folder.listFiles();
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                LogFiles.add(listOfFiles[i].getName());
+            }
+        }
+
+        return LogFiles;
+    }
+
+    /**
      * Setup Trend Analysis Dialog
      */
     public void SetUpTrendAnalysis() {
+
+        ArrayList<String> TrendFiles = GetTrendFiles();
+
         trendAnalysis = new JDialog(this, "Trend Analysis");
         trendAnalysis.setLayout(null);
-        trendAnalysis.setSize(400, 400);
+        trendAnalysis.setSize(320, 200);
+
+        trendFilesToBeAnalyzed = new JLabel("Files to be analyzed: " + TrendFiles.size());
+        trendFilesToBeAnalyzed.setSize(trendFilesToBeAnalyzed.getPreferredSize().getSize());
+        trendFilesToBeAnalyzed.setLocation(10, 40);
+        trendAnalysis.add(trendFilesToBeAnalyzed);
+
+        trendAnalysisSelectTrend = new JLabel("Select Data To View Trends:");
+        trendAnalysisSelectTrend.setSize(trendAnalysisSelectTrend.getPreferredSize().getSize());
+        trendAnalysisSelectTrend.setLocation(10, 10);
+        trendAnalysis.add(trendAnalysisSelectTrend);
 
         cbTrendData = new JComboBox(LogFileData.TrendData);
         cbTrendData.setSize(cbTrendData.getPreferredSize().getSize());
-        cbTrendData.setLocation(10, 10);
+        cbTrendData.setLocation(15 + trendAnalysisSelectTrend.getWidth(), 7);
         trendAnalysis.add(cbTrendData);
 
     }
