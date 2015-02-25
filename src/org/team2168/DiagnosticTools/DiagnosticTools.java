@@ -8,6 +8,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
+import sun.rmi.log.ReliableLog;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -23,6 +24,7 @@ import java.text.DecimalFormat;
 import java.util.*;
 
 class LogFileData {
+    public static String[] TrendData;
     public static ArrayList<DataPoint> PointData = new ArrayList<DataPoint>();
 
     /**
@@ -199,6 +201,9 @@ class LogFileReader{
         double prevEncoderLeft = 0;
 
         double prevTime = 0;
+
+        // Get Header and put it into the TrendAnalysis Variable
+        LogFileData.TrendData = logData.split("\n")[0].split("\t");
 
         // Interpret Data
         for (String loggedData : logData.split("\n")) {
@@ -383,6 +388,7 @@ class DiagnosticViewer extends JFrame{
 
     // ******* Dialogs ******** \\
     private JDialog optionsDialog;
+    private JDialog trendAnalysis;
 
     // ******* Misc Objects ******* \\
     private JSlider timeProfile;
@@ -390,24 +396,24 @@ class DiagnosticViewer extends JFrame{
     // ******* Labels ******** \\
     private JLabel currentTime;
     private JLabel gyroAngle;
-    private JLabel leftSpeed;
-    private JLabel rightSpeed;
     private JLabel optionsDialogFrameDelay;
     private JLabel optionsGlobalMotorScaleDomain;
-    private JLabel optionsGlobalMotorScaleRange;
+    private JLabel trendAnalysisSelectTrend;
 
     // ******* TextAreas ******* \\
     private JTextField optionsDialogFrameDelayInput;
     private JTextField optionsDialogGlobalMotorScaleDomain;
-    private JTextField optionsDialogGlobalMotorScaleRange;
 
     // ******* Buttons ******** \\
     private JButton btnStart;
     private JButton btnPause;
     private JButton btnOptions;
-    private JButton btnAdvancedAnalysis;
+    private JButton btnTrendAnalysis;
     private JButton btnOptionsDialogOK;
     private JButton btnOptionsResetPlayBack;
+
+    // ******* Combo Boxes ******* \\
+    private JComboBox cbTrendData;
 
     // ******* Charts ******** \\
         // Location Chart
@@ -461,12 +467,28 @@ class DiagnosticViewer extends JFrame{
             e.printStackTrace();
         }
 
-        //Dialogs
-        SetUpOptionsDialog();
-
         // Main Frame Elements
         SetUpDisplayElements();
+
+        //Dialogs
+        SetUpOptionsDialog();
+        SetUpTrendAnalysis();
+
         setVisible(true);
+    }
+
+    /**
+     * Setup Trend Analysis Dialog
+     */
+    public void SetUpTrendAnalysis() {
+        trendAnalysis = new JDialog(this, "Trend Analysis");
+        trendAnalysis.setLayout(null);
+        trendAnalysis.setSize(400, 400);
+
+        cbTrendData = new JComboBox(LogFileData.TrendData);
+        cbTrendData.setSize(cbTrendData.getPreferredSize().getSize());
+        cbTrendData.setLocation(10, 10);
+        trendAnalysis.add(cbTrendData);
 
     }
 
@@ -474,6 +496,10 @@ class DiagnosticViewer extends JFrame{
      * Creates and sets up the options
      */
     public void SetUpOptionsDialog() {
+
+        rightMotorScale = ((XYPlot) rightMotorChart_1.getPlot()).getDomainAxis();
+        leftMotorScale = ((XYPlot) leftMotorChart_1.getPlot()).getDomainAxis();
+
         optionsDialog = new JDialog(this, "Playback Options");
         optionsDialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         optionsDialog.setLayout(null);
@@ -486,7 +512,7 @@ class DiagnosticViewer extends JFrame{
 
         optionsDialogFrameDelayInput = new JTextField(String.valueOf(frameDelay));
         optionsDialogFrameDelayInput.setSize(50, 20);
-        optionsDialogFrameDelayInput.setLocation( (int) optionsDialogFrameDelay.getPreferredSize().getSize().getWidth()
+        optionsDialogFrameDelayInput.setLocation((int) optionsDialogFrameDelay.getPreferredSize().getSize().getWidth()
                         + 15, 7
         );
         optionsDialog.add(optionsDialogFrameDelayInput);
@@ -518,19 +544,19 @@ class DiagnosticViewer extends JFrame{
             public void actionPerformed(ActionEvent e) {
                 frameDelay = Integer.parseInt(optionsDialogFrameDelayInput.getText());
                 setEnabled(true);
+                try {
+                    rightMotorScale.setRange(
+                            Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[0]),
+                            Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[1])
+                    );
+                    leftMotorScale.setRange(
+                            Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[0]),
+                            Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[1])
+                    );
 
-                rightMotorScale.setRange(
-                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[0]),
-                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[1])
-                );
-                leftMotorScale.setRange(
-                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[0]),
-                        Double.parseDouble(optionsDialogGlobalMotorScaleDomain.getText().split("-")[1])
-                );
-
-                ((XYPlot) leftMotorChart_1.getPlot()).setDomainAxis(leftMotorScale);
-                ((XYPlot) rightMotorChart_1.getPlot()).setDomainAxis(rightMotorScale);
-
+                    ((XYPlot) leftMotorChart_1.getPlot()).setDomainAxis(leftMotorScale);
+                    ((XYPlot) rightMotorChart_1.getPlot()).setDomainAxis(rightMotorScale);
+                }catch (NumberFormatException ex) {}
                 optionsDialog.dispose();
             }
         });
@@ -615,11 +641,17 @@ class DiagnosticViewer extends JFrame{
         btnOptions.setLocation(205, 10);
         add(btnOptions);
 
-        // Advanced Analysis
-        btnAdvancedAnalysis = new JButton("Advanced Analysis");
-        btnAdvancedAnalysis.setSize(264, 25);
-        btnAdvancedAnalysis.setLocation(10, 40);
-        add(btnAdvancedAnalysis);
+        // Trend Analysis
+        btnTrendAnalysis = new JButton("Trend Analysis");
+        btnTrendAnalysis.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                trendAnalysis.setVisible(true);
+            }
+        });
+        btnTrendAnalysis.setSize(264, 25);
+        btnTrendAnalysis.setLocation(10, 40);
+        add(btnTrendAnalysis);
 
         // Gyro Angle Label
         gyroAngle = new JLabel("Gyro Angle: 0\u00B0");
@@ -748,13 +780,10 @@ class DiagnosticViewer extends JFrame{
                 rightMotorSeriesCurrent_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getRightCurrent()[0]);
 
 
-
                 DecimalFormat df = new DecimalFormat("####.00");
                 String heading = df.format(LogFileData.PointData.get(i).getHeading());
                 gyroAngle.setText("Gyro Angle: " +  heading + "\u00B0");
                 gyroAngle.setSize(gyroAngle.getPreferredSize().getSize());
-
-                System.out.println(p.TimeElapsed + ":" + p.getLeftSpeed());
 
                 currentPlaybackPoint = i;
             } else {
