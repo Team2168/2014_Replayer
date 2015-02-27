@@ -421,6 +421,9 @@ class DiagnosticViewer extends JFrame{
     private JButton btnOptionsResetPlayBack;
     private JButton btnStartTrend;
 
+    // ******* Progress Bar ******* \\
+    private JProgressBar pgbLoadedTrendFiles;
+
     // ******* Combo Boxes ******* \\
     private JComboBox cbTrendData;
 
@@ -531,6 +534,13 @@ class DiagnosticViewer extends JFrame{
         cbTrendData.setLocation(15 + trendAnalysisSelectTrend.getWidth(), 7);
         trendAnalysis.add(cbTrendData);
 
+        pgbLoadedTrendFiles = new JProgressBar();
+        pgbLoadedTrendFiles.setMinimum(0);
+        pgbLoadedTrendFiles.setMaximum(TrendFiles.size());
+        pgbLoadedTrendFiles.setSize(250, 15);
+        pgbLoadedTrendFiles.setLocation(10, 80);
+        trendAnalysis.add(pgbLoadedTrendFiles);
+
         btnTrendAnalysis = new JButton("Start Trend Analysis");
         btnTrendAnalysis.setSize(btnTrendAnalysis.getPreferredSize().getSize());
         btnTrendAnalysis.addActionListener(new ActionListener() {
@@ -555,7 +565,20 @@ class DiagnosticViewer extends JFrame{
      * @param TrendFiles List of files to analise a trend on.
      */
     public void CalculateTrendData(ArrayList<String> TrendFiles) {
-
+        int count = 1;
+        long startTime = System.nanoTime();
+        for (String fileName : TrendFiles) {
+            pgbLoadedTrendFiles.setValue(count);
+            try {
+                OI.trendLogs.add(new LogFileReader("trends/" + fileName).loadLog());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            count ++;
+        }
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime) / 1000000;
+        System.out.println("Loaded and created trend in " + duration + "ms");
     }
 
     /**
