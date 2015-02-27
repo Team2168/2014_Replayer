@@ -8,6 +8,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
+import sun.rmi.log.ReliableLog;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -22,15 +23,20 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
 
+class OI {
+    public static LogFileData mainLog;
+    public static ArrayList<LogFileData> trendLogs = new ArrayList<LogFileData>();
+}
+
 class LogFileData {
-    public static String[] TrendData;
-    public static ArrayList<DataPoint> PointData = new ArrayList<DataPoint>();
+    public String[] TrendData;
+    public ArrayList<DataPoint> PointData = new ArrayList<DataPoint>();
 
     /**
      * Converts all X data to Float array
      * @return Float array of X Data
      */
-    public static float[] PointDataTo1DFloat_X(){
+    public float[] PointDataTo1DFloat_X(){
         float[] returnData = new float[PointData.size()];
 
         for(int place = 0; place <= PointData.size() - 1; place++) {
@@ -44,7 +50,7 @@ class LogFileData {
      * Converts all Y data to Float array
      * @return Float array of Y Data
      */
-    public static float[] PointDataTo1DFloat_Y(){
+    public float[] PointDataTo1DFloat_Y(){
         float[] returnData = new float[PointData.size()];
 
         for(int place = 0; place <= PointData.size() - 1; place++) {
@@ -57,7 +63,7 @@ class LogFileData {
     /**
      * @return Returns the total amount of data points captured
      */
-    public static int GetTotalFramesCaptured() {
+    public int GetTotalFramesCaptured() {
         return PointData.size();
     }
 
@@ -66,7 +72,7 @@ class LogFileData {
      * @param location The location of the array to get the time out of
      * @return The time in (mm:ss)
      */
-    public static String PointLocationToTime(int location) {
+    public String PointLocationToTime(int location) {
         double timeElapsed = PointData.get(location).TimeElapsed;
         if (timeElapsed > 60) {
             int min = (int) timeElapsed / 60;
@@ -151,7 +157,7 @@ class DataPoint {
 class LogFileReader{
 
     private String logFileLocation;
-    private LogFileData logFileData;
+    private LogFileData logFileData = new LogFileData();
 
     public int RunTime = 0;
     public int VoltageLeftStart = 1;
@@ -170,13 +176,12 @@ class LogFileReader{
      */
     public LogFileReader(String logFileLocation) throws IOException{
         this.logFileLocation = logFileLocation;
-        loadLog();
     }
 
     /**
      * Loads in the log file passed in through the constructor
      */
-    public void loadLog() throws IOException{
+    public LogFileData loadLog() throws IOException{
         System.out.println("Loading " + this.logFileLocation);
 
         // Load in log file
@@ -202,7 +207,7 @@ class LogFileReader{
         double prevTime = 0;
 
         // Get Header and put it into the TrendAnalysis Variable
-        LogFileData.TrendData = logData.split("\n")[0].split("\t");
+        logFileData.TrendData = logData.split("\n")[0].split("\t");
 
         // Interpret Data
         for (String loggedData : logData.split("\n")) {
@@ -218,8 +223,8 @@ class LogFileReader{
 
                     // Get Left Voltages
                     double leftVoltage[] = {
-                            -Double.parseDouble(entryData[VoltageLeftStart]),
-                            -Double.parseDouble(entryData[VoltageLeftStart + 1])
+                            Double.parseDouble(entryData[VoltageLeftStart]),
+                            Double.parseDouble(entryData[VoltageLeftStart + 1])
                     };
 
                     // Get Right Voltages
@@ -277,6 +282,8 @@ class LogFileReader{
             }
 
         }
+
+        return logFileData;
 
     }
 
@@ -342,6 +349,7 @@ public class DiagnosticTools {
         long startTime = System.nanoTime();
         try {
             logFileReader = new LogFileReader("logs/" + LogFiles.get(ID));
+            OI.mainLog = logFileReader.loadLog();
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(0x003);
@@ -411,6 +419,7 @@ class DiagnosticViewer extends JFrame{
     private JButton btnTrendAnalysis;
     private JButton btnOptionsDialogOK;
     private JButton btnOptionsResetPlayBack;
+    private JButton btnStartTrend;
 
     // ******* Combo Boxes ******* \\
     private JComboBox cbTrendData;
@@ -501,7 +510,7 @@ class DiagnosticViewer extends JFrame{
      */
     public void SetUpTrendAnalysis() {
 
-        ArrayList<String> TrendFiles = GetTrendFiles();
+        final ArrayList<String> TrendFiles = GetTrendFiles();
 
         trendAnalysis = new JDialog(this, "Trend Analysis");
         trendAnalysis.setLayout(null);
@@ -517,10 +526,35 @@ class DiagnosticViewer extends JFrame{
         trendAnalysisSelectTrend.setLocation(10, 10);
         trendAnalysis.add(trendAnalysisSelectTrend);
 
-        cbTrendData = new JComboBox(LogFileData.TrendData);
+        cbTrendData = new JComboBox(OI.mainLog.TrendData);
         cbTrendData.setSize(cbTrendData.getPreferredSize().getSize());
         cbTrendData.setLocation(15 + trendAnalysisSelectTrend.getWidth(), 7);
         trendAnalysis.add(cbTrendData);
+
+        btnTrendAnalysis = new JButton("Start Trend Analysis");
+        btnTrendAnalysis.setSize(btnTrendAnalysis.getPreferredSize().getSize());
+        btnTrendAnalysis.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Thread CalculateTrendData = new Thread() {
+                    @Override
+                    public void run() {
+                        CalculateTrendData(TrendFiles);
+                    }
+                };
+                CalculateTrendData.start();
+            }
+        });
+        btnTrendAnalysis.setLocation(153, 32);
+        trendAnalysis.add(btnTrendAnalysis);
+
+    }
+
+    /**
+     * Calculates trend data between
+     * @param TrendFiles List of files to analise a trend on.
+     */
+    public void CalculateTrendData(ArrayList<String> TrendFiles) {
 
     }
 
@@ -609,7 +643,7 @@ class DiagnosticViewer extends JFrame{
         currentTime.setLocation(850, 10);
         add(currentTime);
 
-        timeProfile = new JSlider(JSlider.HORIZONTAL, 0, LogFileData.GetTotalFramesCaptured() - 1, 0);
+        timeProfile = new JSlider(JSlider.HORIZONTAL, 0, OI.mainLog.GetTotalFramesCaptured() - 1, 0);
         timeProfile.setMajorTickSpacing(40);
         timeProfile.setPaintTicks(true);
         timeProfile.setSize(new Dimension(1000, 40));
@@ -620,7 +654,7 @@ class DiagnosticViewer extends JFrame{
             public void stateChanged(ChangeEvent e) {
                 int dataPointLocation = ((JSlider)e.getSource()).getValue();
                 currentTime.setText("Current Time: " +
-                        String.valueOf(LogFileData.PointLocationToTime(dataPointLocation)));
+                        String.valueOf(OI.mainLog.PointLocationToTime(dataPointLocation)));
                 currentTime.setSize(currentTime.getPreferredSize().getSize());
                 revalidate();
             }
@@ -790,10 +824,10 @@ class DiagnosticViewer extends JFrame{
      */
     public void UpdateDisplayedData() {
 
-        for (int i = currentPlaybackPoint; i <= LogFileData.GetTotalFramesCaptured() - 1; i++) {
+        for (int i = currentPlaybackPoint; i <= OI.mainLog.GetTotalFramesCaptured() - 1; i++) {
 
             if (!isPaused) {
-                DataPoint p = LogFileData.PointData.get(currentPlaybackPoint);
+                DataPoint p = OI.mainLog.PointData.get(currentPlaybackPoint);
 
                 // Update slider
                 timeProfile.setValue(i);
@@ -805,15 +839,15 @@ class DiagnosticViewer extends JFrame{
                 );
 
                 // Update left motor current and voltage
-                leftMotorSeriesVoltage_1.add(LogFileData.PointData.get(i).TimeElapsed
+                leftMotorSeriesVoltage_1.add(OI.mainLog.PointData.get(i).TimeElapsed
                         , p.getLeftVoltage()[0]);
-                leftMotorSeriesCurrent_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getLeftCurrent()[0]);
-                rightMotorSeriesVoltage_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getRightVoltage()[0]);
-                rightMotorSeriesCurrent_1.add(LogFileData.PointData.get(i).TimeElapsed, p.getRightCurrent()[0]);
+                leftMotorSeriesCurrent_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getLeftCurrent()[0]);
+                rightMotorSeriesVoltage_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getRightVoltage()[0]);
+                rightMotorSeriesCurrent_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getRightCurrent()[0]);
 
 
                 DecimalFormat df = new DecimalFormat("####.00");
-                String heading = df.format(LogFileData.PointData.get(i).getHeading());
+                String heading = df.format(OI.mainLog.PointData.get(i).getHeading());
                 gyroAngle.setText("Gyro Angle: " +  heading + "\u00B0");
                 gyroAngle.setSize(gyroAngle.getPreferredSize().getSize());
 
@@ -830,7 +864,7 @@ class DiagnosticViewer extends JFrame{
 
         }
 
-        if (currentPlaybackPoint == LogFileData.GetTotalFramesCaptured()) {
+        if (currentPlaybackPoint == OI.mainLog.GetTotalFramesCaptured()) {
             currentPlaybackPoint = 0;
         }
 
