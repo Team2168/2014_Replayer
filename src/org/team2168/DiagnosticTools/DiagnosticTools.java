@@ -8,7 +8,6 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
-import sun.rmi.log.ReliableLog;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -517,7 +516,7 @@ class DiagnosticViewer extends JFrame{
 
         trendAnalysis = new JDialog(this, "Trend Analysis");
         trendAnalysis.setLayout(null);
-        trendAnalysis.setSize(320, 200);
+        trendAnalysis.setSize(320, 140);
 
         trendFilesToBeAnalyzed = new JLabel("Files to be analyzed: " + TrendFiles.size());
         trendFilesToBeAnalyzed.setSize(trendFilesToBeAnalyzed.getPreferredSize().getSize());
@@ -529,7 +528,8 @@ class DiagnosticViewer extends JFrame{
         trendAnalysisSelectTrend.setLocation(10, 10);
         trendAnalysis.add(trendAnalysisSelectTrend);
 
-        cbTrendData = new JComboBox(OI.mainLog.TrendData);
+        cbTrendData = new JComboBox(new String[]{"Left Drivetrain Voltage", "Left Drivetrain Current",
+                "Right Drivetrain Voltage", "Right Drivetrain Current", "Lift Motor Voltage", "Lift Motor Current"});
         cbTrendData.setSize(cbTrendData.getPreferredSize().getSize());
         cbTrendData.setLocation(15 + trendAnalysisSelectTrend.getWidth(), 7);
         trendAnalysis.add(cbTrendData);
@@ -537,8 +537,8 @@ class DiagnosticViewer extends JFrame{
         pgbLoadedTrendFiles = new JProgressBar();
         pgbLoadedTrendFiles.setMinimum(0);
         pgbLoadedTrendFiles.setMaximum(TrendFiles.size());
-        pgbLoadedTrendFiles.setSize(250, 15);
-        pgbLoadedTrendFiles.setLocation(10, 80);
+        pgbLoadedTrendFiles.setSize(280, 15);
+        pgbLoadedTrendFiles.setLocation(10, 70);
         trendAnalysis.add(pgbLoadedTrendFiles);
 
         btnTrendAnalysis = new JButton("Start Trend Analysis");
@@ -579,6 +579,17 @@ class DiagnosticViewer extends JFrame{
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("Loaded and created trend in " + duration + "ms");
+
+        double[] min = new double[OI.trendLogs.size()];
+        double[] max = new double[OI.trendLogs.size()];
+        double[] mode = new double[OI.trendLogs.size()];
+
+        // Loop through all trend logs
+        for (LogFileData l : OI.trendLogs) {
+            //Find min, max, and average of selected trend.
+
+        }
+
     }
 
     /**
