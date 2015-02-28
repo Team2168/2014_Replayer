@@ -550,7 +550,22 @@ class DiagnosticViewer extends JFrame{
                 Thread CalculateTrendData = new Thread() {
                     @Override
                     public void run() {
-                        CalculateTrendData(TrendFiles);
+                        int selectedItem = 0;
+                        if (cbTrendData.getSelectedItem().equals("Left Drivetrain Voltage"))
+                            selectedItem = 0;
+                        if (cbTrendData.getSelectedItem().equals("Left Drivetrain Current"))
+                            selectedItem = 1;
+                        if (cbTrendData.getSelectedItem().equals("Right Drivetrain Voltage"))
+                            selectedItem = 2;
+                        if (cbTrendData.getSelectedItem().equals("Right Drivetrain Current"))
+                            selectedItem = 3;
+                        if (cbTrendData.getSelectedItem().equals("Right Drivetrain Current"))
+                            selectedItem = 4;
+                        if (cbTrendData.getSelectedItem().equals("Lift Motor Current"))
+                            selectedItem = 5;
+                        if (cbTrendData.getSelectedItem().equals("Lift Motor Voltage"))
+                            selectedItem = 5;
+                        CalculateTrendData(TrendFiles, selectedItem);
                     }
                 };
                 CalculateTrendData.start();
@@ -565,12 +580,9 @@ class DiagnosticViewer extends JFrame{
      * Calculates trend data between
      * @param TrendFiles List of files to analise a trend on.
      */
-    public void CalculateTrendData(ArrayList<String> TrendFiles) {
+    public void CalculateTrendData(ArrayList<String> TrendFiles, int selectedItem) {
 
-        double[] x = {-2, 0, 2};
-        double[] y = {4, 0, 4};
-        PolynomialFunctionLagrangeForm poly = new PolynomialFunctionLagrangeForm(x, y);
-        System.out.println(poly.value(6));
+        System.out.println(selectedItem);
 
         int count = 1;
         long startTime = System.nanoTime();
@@ -587,16 +599,59 @@ class DiagnosticViewer extends JFrame{
         long duration = (endTime - startTime) / 1000000;
         System.out.println("Loaded and created trend in " + duration + "ms");
 
-        double[] min = new double[OI.trendLogs.size()];
-        double[] max = new double[OI.trendLogs.size()];
-        double[] mode = new double[OI.trendLogs.size()];
+        ArrayList<Double> max = new ArrayList<Double>();
+        ArrayList<Double> median = new ArrayList<Double>();
 
         // Loop through all trend logs
         for (LogFileData l : OI.trendLogs) {
-            //Find min, max, and average of selected trend.
+            //Find max, and mode of selected trend
+            switch (selectedItem){
+                case 0:
+                    double _max = 0;
+                    double[] _elements = new double[l.GetTotalFramesCaptured()];
+                    for (int p = 0; p <= l.GetTotalFramesCaptured() - 1; p++){
+                        if (l.PointData.get(p).getLeftVoltage()[0] > _max) {
+                            _max = l.PointData.get(p).getLeftVoltage()[0];
+                        }
+                        _elements[p] = l.PointData.get(p).getLeftVoltage()[0];
+                    }
+                    median.add(median(_elements));
+                    max.add(_max);
+                    break;
+            }
 
         }
 
+        // Create trend line of max data point
+        double[] maxY = new double[max.size()];
+        double[] maxX = new double[max.size()];
+
+        for (int mX = 0; mX <= maxX.length - 1; mX++)
+            maxX[mX] = mX + 1;
+
+        for (int mY = 0; mY <= maxY.length - 1; mY++)
+            maxY[mY] = max.get(mY);
+
+        System.out.println("X Values:" + Arrays.toString(maxX));
+        System.out.println("Y Values:" + Arrays.toString(maxY));
+
+        PolynomialFunctionLagrangeForm maxTrend = new PolynomialFunctionLagrangeForm(maxX, maxY);
+
+    }
+
+    /**
+     * Finds the median of an array
+     * @param numArray Array to find median of
+     * @return The Median
+     */
+    public double median(double[] numArray) {
+        Arrays.sort(numArray);
+        double median;
+        if (numArray.length % 2 == 0)
+            median = ((double)numArray[numArray.length/2] + (double)numArray[numArray.length/2 - 1])/2;
+        else
+            median = (double) numArray[numArray.length/2];
+        return median;
     }
 
     /**
