@@ -8,6 +8,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunctionLagrangeForm;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -565,6 +566,12 @@ class DiagnosticViewer extends JFrame{
      * @param TrendFiles List of files to analise a trend on.
      */
     public void CalculateTrendData(ArrayList<String> TrendFiles) {
+
+        double[] x = {-2, 0, 2};
+        double[] y = {4, 0, 4};
+        PolynomialFunctionLagrangeForm poly = new PolynomialFunctionLagrangeForm(x, y);
+        System.out.println(poly.value(6));
+
         int count = 1;
         long startTime = System.nanoTime();
         for (String fileName : TrendFiles) {
