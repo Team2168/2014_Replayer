@@ -615,7 +615,9 @@ class DiagnosticViewer extends JFrame{
                         }
                         _elements[p] = l.PointData.get(p).getLeftVoltage()[0];
                     }
-                    median.add(median(_elements));
+
+                    // Remove all garbage data from the _elements array.
+
                     max.add(_max);
                     break;
             }
@@ -631,9 +633,6 @@ class DiagnosticViewer extends JFrame{
 
         for (int mY = 0; mY <= maxY.length - 1; mY++)
             maxY[mY] = max.get(mY);
-
-        System.out.println("X Values:" + Arrays.toString(maxX));
-        System.out.println("Y Values:" + Arrays.toString(maxY));
 
         PolynomialFunctionLagrangeForm maxTrend = new PolynomialFunctionLagrangeForm(maxX, maxY);
 
