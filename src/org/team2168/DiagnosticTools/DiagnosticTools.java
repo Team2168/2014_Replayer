@@ -103,8 +103,13 @@ class DataPoint {
     public double[] LeftCurrent;
     public double[] RightCurrent;
 
+    public double LiftVoltage;
+
+    public double LiftCurrent;
+
     public DataPoint(double x, double y, double leftSpeed, double heading, double rightSpeed, double[] leftVoltage,
-                     double[] rightVoltage, double[] leftCurrent, double[] rightCurrent, double timeElapsed) {
+                     double[] rightVoltage, double[] leftCurrent, double[] rightCurrent, double timeElapsed,
+                     double liftVoltage, double liftCurrent) {
         X = x;
         Y = y;
         LeftSpeed = leftSpeed;
@@ -115,7 +120,18 @@ class DataPoint {
         LeftCurrent = leftCurrent;
         RightCurrent = rightCurrent;
         TimeElapsed = timeElapsed;
+        LiftVoltage = liftVoltage;
+        LiftCurrent = liftCurrent;
     }
+
+    public double getLiftVoltage() {
+        return LiftVoltage;
+    }
+
+    public double getLiftCurrent() {
+        return LiftCurrent;
+    }
+
 
     public double getY() {
         return Y;
@@ -164,9 +180,11 @@ class LogFileReader{
     public int VoltageRightStart = 4;
     public int CurrentLeftStart = 7;
     public int CurrentRightStart = 10;
-    public int SPIGyroAngle = 13;
+    public int SPIGyroAngle = 15;
     public int LeftEncoderPosition = 17;
     public int RightEncoderPosition = 19;
+    public int LiftMotorVoltage = 21;
+    public int LiftMotorCurrent = 22;
 
     public final double MinimumStartTime = 20.0;
 
@@ -219,7 +237,7 @@ class LogFileReader{
                     // All criteria has been met. Extract data from the logged entry and add to PointData
 
                     // Get heading
-                    double heading = Double.parseDouble(entryData[SPIGyroAngle]);
+                    double heading = Double.parseDouble(entryData[SPIGyroAngle]) + 90;
 
                     // Get Left Voltages
                     double leftVoltage[] = {
@@ -257,6 +275,10 @@ class LogFileReader{
                     // Get total distance traveled by averaging left and right distances
                     double totalDistanceTraveled = (leftDistanceTraveled + rightDistanceTraveled) / 2;
 
+                    //Get lift voltage and current
+                    double liftVoltage = Double.parseDouble(entryData[LiftMotorVoltage]);
+                    double liftCurrent = Double.parseDouble(entryData[LiftMotorCurrent]);
+
                     // Convert distances to feet
                     leftDistanceTraveled /= 12;
                     rightDistanceTraveled /= 12;
@@ -267,14 +289,20 @@ class LogFileReader{
                     double leftFeetPerSecond = leftDistanceTraveled / timeDifference;
                     double rightFeetPerSecond = rightDistanceTraveled / timeDifference;
 
+                    boolean direction = true;
+                    if (leftFeetPerSecond > 0 && rightFeetPerSecond > 0)
+                        direction = true;
+                    if (leftFeetPerSecond < 0 && rightFeetPerSecond < 0)
+                        direction = false;
+
                     // Calculate new (X, Y) point
-                    double x = prevX + calculateX(totalDistanceTraveled, heading);
-                    double y = prevY + calculateY(totalDistanceTraveled, heading);
+                    double x = prevX + calculateX(totalDistanceTraveled, heading, direction);
+                    double y = prevY + calculateY(totalDistanceTraveled, heading, direction);
 
                     // Add the log data
                     logFileData.PointData.add(new DataPoint(x, y, leftFeetPerSecond, heading, rightFeetPerSecond,
                             leftVoltage, rightVoltage, leftCurrent, rightCurrent,
-                            Double.parseDouble(entryData[RunTime])));
+                            Double.parseDouble(entryData[RunTime]), liftVoltage, liftCurrent));
 
                     prevX = x;
                     prevY = y;
@@ -293,11 +321,17 @@ class LogFileReader{
      * @param heading Heading in degrees
      * @return New X value
      */
-    public static double calculateX(double totalDistanceTraveled, double heading) {
+    public static double calculateX(double totalDistanceTraveled, double heading, boolean direction) {
         // (1/2) * distance^2 * Cos(heading)
-        double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
-        double p_2 = Math.cos(Math.toRadians(heading));
-        return (Math.toDegrees(p_1 * p_2));
+        if (direction) {
+            double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
+            double p_2 = Math.cos(Math.toRadians(heading));
+            return (Math.toDegrees(p_1 * p_2));
+        }else{
+            double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
+            double p_2 = Math.cos(Math.toRadians(heading));
+            return -(Math.toDegrees(p_1 * p_2));
+        }
     }
 
     /**
@@ -306,12 +340,17 @@ class LogFileReader{
      * @param heading Heading in degrees
      * @return New Y value
      */
-    public static double calculateY(double totalDistanceTraveled, double heading) {
-        double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
-        double p_2 = Math.sin(Math.toRadians(heading));
-        return (Math.toDegrees(p_1 * p_2));
+    public static double calculateY(double totalDistanceTraveled, double heading, boolean direction) {
+        if (direction) {
+            double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
+            double p_2 = Math.sin(Math.toRadians(heading));
+            return (Math.toDegrees(p_1 * p_2));
+        } else {
+            double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
+            double p_2 = Math.sin(Math.toRadians(heading));
+            return -(Math.toDegrees(p_1 * p_2));
+        }
     }
-
 }
 
 public class DiagnosticTools {
@@ -428,26 +467,31 @@ class DiagnosticViewer extends JFrame{
     private JComboBox cbTrendData;
 
     // ******* Charts ******** \\
-        // Location Chart
-        private XYSeries locationSeries;
-        private XYSeriesCollection locationCollection;
-        private JFreeChart locationChart;
-        private ChartPanel locationPanel;
+    // Location Chart
+    private XYSeries locationSeries;
+    private XYSeriesCollection locationCollection;
+    private JFreeChart locationChart;
+    private ChartPanel locationPanel;
 
-        // Left Motor 1 Data
-        private XYSeries leftMotorSeriesVoltage_1;
-        private XYSeries leftMotorSeriesCurrent_1;
-        private XYSeriesCollection leftMotorDataCollection_1;
-        private JFreeChart leftMotorChart_1;
-        private ChartPanel leftMotorPanel_1;
+    // Left Motor 1 Data
+    private XYSeries leftMotorSeriesVoltage_1;
+    private XYSeries leftMotorSeriesCurrent_1;
+    private XYSeriesCollection leftMotorDataCollection_1;
+    private JFreeChart leftMotorChart_1;
+    private ChartPanel leftMotorPanel_1;
 
-        // right Motor 1 Data
-        private XYSeries rightMotorSeriesVoltage_1;
-        private XYSeries rightMotorSeriesCurrent_1;
-        private XYSeriesCollection rightMotorDataCollection_1;
-        private JFreeChart rightMotorChart_1;
-        private ChartPanel rightMotorPanel_1;
+    // right Motor 1 Data
+    private XYSeries rightMotorSeriesVoltage_1;
+    private XYSeries rightMotorSeriesCurrent_1;
+    private XYSeriesCollection rightMotorDataCollection_1;
+    private JFreeChart rightMotorChart_1;
+    private ChartPanel rightMotorPanel_1;
 
+    private XYSeries liftMotorVoltage;
+    private XYSeries liftMotorCurrent;
+    private XYSeriesCollection liftMotorDataCollection;
+    private JFreeChart liftMotorChart;
+    private ChartPanel liftMotorPanel;
 
     // Playback Options
     private int currentPlaybackPoint = 0;
@@ -550,7 +594,7 @@ class DiagnosticViewer extends JFrame{
                 Thread CalculateTrendData = new Thread() {
                     @Override
                     public void run() {
-                        CalculateTrendData(TrendFiles);
+                        CalculateTrendData(TrendFiles, (String) cbTrendData.getSelectedItem());
                     }
                 };
                 CalculateTrendData.start();
@@ -565,12 +609,7 @@ class DiagnosticViewer extends JFrame{
      * Calculates trend data between
      * @param TrendFiles List of files to analise a trend on.
      */
-    public void CalculateTrendData(ArrayList<String> TrendFiles) {
-
-        double[] x = {-2, 0, 2};
-        double[] y = {4, 0, 4};
-        PolynomialFunctionLagrangeForm poly = new PolynomialFunctionLagrangeForm(x, y);
-        System.out.println(poly.value(6));
+    public void CalculateTrendData(ArrayList<String> TrendFiles, String TREND_TYPE) {
 
         int count = 1;
         long startTime = System.nanoTime();
@@ -587,14 +626,16 @@ class DiagnosticViewer extends JFrame{
         long duration = (endTime - startTime) / 1000000;
         System.out.println("Loaded and created trend in " + duration + "ms");
 
-        double[] min = new double[OI.trendLogs.size()];
-        double[] max = new double[OI.trendLogs.size()];
-        double[] mode = new double[OI.trendLogs.size()];
+        ArrayList<Double> min = new ArrayList<Double>();
+        ArrayList<Double> max = new ArrayList<Double>();
+        ArrayList<Double> average = new ArrayList<Double>();
 
         // Loop through all trend logs
         for (LogFileData l : OI.trendLogs) {
-            //Find min, max, and average of selected trend.
+            //Find min, max, and average, and curve fit.
+            for (DataPoint point : l.PointData) {
 
+            }
         }
 
     }
@@ -857,6 +898,36 @@ class DiagnosticViewer extends JFrame{
             add(rightMotorPanel_1);
         }
 
+        //Lift motor data
+        {
+            //Set up the charts, Voltage and Current
+            liftMotorVoltage = new XYSeries("Voltage");
+            liftMotorVoltage.add(0, 0);
+            liftMotorCurrent = new XYSeries("Current");
+            liftMotorCurrent.add(0, 0);
+
+            liftMotorDataCollection = new XYSeriesCollection();
+            liftMotorDataCollection.addSeries(liftMotorVoltage);
+            liftMotorDataCollection.addSeries(liftMotorCurrent);
+
+            liftMotorChart = ChartFactory.createXYLineChart(
+                    "Lift Motor Data",
+                    "",
+                    "",
+                    liftMotorDataCollection,
+                    PlotOrientation.VERTICAL,
+                    true,
+                    false,
+                    false
+            );
+            liftMotorChart.setBackgroundPaint(getBackground());
+
+            liftMotorPanel = new ChartPanel(liftMotorChart);
+            liftMotorPanel.setSize(300, 200);
+            liftMotorPanel.setLocation(700, 435);
+            add(liftMotorPanel);
+        }
+
     }
 
     /**
@@ -883,9 +954,15 @@ class DiagnosticViewer extends JFrame{
                 leftMotorSeriesVoltage_1.add(OI.mainLog.PointData.get(i).TimeElapsed
                         , p.getLeftVoltage()[0]);
                 leftMotorSeriesCurrent_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getLeftCurrent()[0]);
+
+                // Update right motor current and voltage
                 rightMotorSeriesVoltage_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getRightVoltage()[0]);
                 rightMotorSeriesCurrent_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getRightCurrent()[0]);
 
+
+                // Update lift motor current and voltage
+                liftMotorVoltage.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getLiftVoltage());
+                liftMotorCurrent.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getLiftCurrent());
 
                 DecimalFormat df = new DecimalFormat("####.00");
                 String heading = df.format(OI.mainLog.PointData.get(i).getHeading());
