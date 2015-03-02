@@ -1,5 +1,7 @@
 package org.team2168.DiagnosticTools;
 
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -8,7 +10,8 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.apache.commons.math3.analysis.polynomials.PolynomialFunctionLagrangeForm;
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.stat.StatUtils;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -423,6 +426,64 @@ public class DiagnosticTools {
 }
 
 /**
+ * Class used for calculating the tred line equation
+ */
+class Equation{
+
+    private double[] c;
+    private double[] m;
+
+    private double b;
+    private double x;
+
+    public Equation(PolynomialSplineFunction p) {
+        c = new double[p.getPolynomials().length];
+        m = new double[p.getPolynomials().length];
+
+        for (int C = 0; C <= c.length - 1; C++)
+            c[C] = p.getPolynomials()[C].getCoefficients()[0];
+
+        for (int M = 0; M <= m.length - 1; M++)
+            m[M] = p.getPolynomials()[M].getCoefficients()[1];
+
+        b = mean(c);
+        x = mean(m);
+
+    }
+
+    /**
+     * Calculates the value of the equation
+     * @param z The X value to evaluate y
+     * @return The value
+     */
+    public double value(double z) {
+        return (x * z) + b;
+    }
+
+    /**
+     * Calculates the mean of a double array
+     * @param m Double[] of numbers to find average of
+     * @return The average.
+     */
+    private double mean(double[] m) {
+        double sum = 0;
+        for (int i = 0; i < m.length; i++) {
+            sum += m[i];
+        }
+        return sum / m.length;
+    }
+
+    @Override
+    public String toString() {
+        if (b > 0)
+            return "y = " + x + "x + " + b;
+        else
+            return "y = " + x + "x - " + b;
+    }
+
+}
+
+/**
  * Diagnostic Tools Viewer
  */
 class DiagnosticViewer extends JFrame{
@@ -444,8 +505,12 @@ class DiagnosticViewer extends JFrame{
     private JLabel gyroAngle;
     private JLabel optionsDialogFrameDelay;
     private JLabel optionsGlobalMotorScaleDomain;
+    private JLabel optionsTrendFutureAnalysis;
     private JLabel trendAnalysisSelectTrend;
     private JLabel trendFilesToBeAnalyzed;
+    private JLabel lbCompressorStatus;
+    private JLabel lbRobotState;
+
 
     // ******* TextAreas ******* \\
     private JTextField optionsDialogFrameDelayInput;
@@ -458,7 +523,6 @@ class DiagnosticViewer extends JFrame{
     private JButton btnTrendAnalysis;
     private JButton btnOptionsDialogOK;
     private JButton btnOptionsResetPlayBack;
-    private JButton btnStartTrend;
 
     // ******* Progress Bar ******* \\
     private JProgressBar pgbLoadedTrendFiles;
@@ -501,6 +565,10 @@ class DiagnosticViewer extends JFrame{
     // Chart Scale Options
     ValueAxis rightMotorScale;
     ValueAxis leftMotorScale;
+
+    // Trend Options
+    private int futureAnalysis = 2;
+
     /**
      * Default Constructor
      * Sets up simple window properties
@@ -594,7 +662,7 @@ class DiagnosticViewer extends JFrame{
                 Thread CalculateTrendData = new Thread() {
                     @Override
                     public void run() {
-                        CalculateTrendData(TrendFiles, (String) cbTrendData.getSelectedItem());
+                        CalculateTrendData(TrendFiles, cbTrendData.getSelectedIndex());
                     }
                 };
                 CalculateTrendData.start();
@@ -609,33 +677,149 @@ class DiagnosticViewer extends JFrame{
      * Calculates trend data between
      * @param TrendFiles List of files to analise a trend on.
      */
-    public void CalculateTrendData(ArrayList<String> TrendFiles, String TREND_TYPE) {
+    public void CalculateTrendData(ArrayList<String> TrendFiles, int TREND_TYPE) {
+
+        System.out.println("Calculating trend data...");
 
         int count = 1;
         long startTime = System.nanoTime();
         for (String fileName : TrendFiles) {
             pgbLoadedTrendFiles.setValue(count);
             try {
+                System.out.print("\t");
                 OI.trendLogs.add(new LogFileReader("trends/" + fileName).loadLog());
             } catch (IOException e) {
                 e.printStackTrace();
             }
             count ++;
         }
+
+        ArrayList<Double> max = new ArrayList<Double>();
+        ArrayList<Double> mode = new ArrayList<Double>();
+
+        // Loop through all trend logs
+        for (LogFileData l : OI.trendLogs) {
+            //Find max, and average, and curve fit.
+
+            double _max = 0.0;
+            double[] _mode = new double[l.GetTotalFramesCaptured()];
+            int _modeIndexValue = 0;
+
+            for (DataPoint point : l.PointData) {
+                switch (TREND_TYPE) {
+                    case 0:
+                        // Calculate
+                        if (_max < point.getLeftVoltage()[0])
+                            _max = point.getLeftVoltage()[0];
+
+                        if (point.getLeftVoltage()[0] > 1) {
+                            _mode[_modeIndexValue] = point.getLeftVoltage()[0];
+                            _modeIndexValue++;
+                        }
+
+                        break;
+                }
+            }
+
+            mode.add(StatUtils.mode(_mode, 0, _modeIndexValue)[0]);
+            max.add(_max);
+
+        }
+
+        // Create xPoints[] to serve as a basis for all xPoints;
+        // xPoints[] simply contains an integer from 1-x[].length (ex. {1, 2, 3, 4, 5, 6})
+        // to serve as a marker for the X value of the data points.
+        double[] xPoints = new double[max.size()];
+        for (int xP = 0; xP <= xPoints.length - 1; xP ++)
+            xPoints[xP] = xP + 1;
+
+        // Create a double[] for max and mode ArrayLists
+        // The array length is based on the length of the xPoints[] to ensure a (x, y) pair.
+        double[] _max = new double[xPoints.length];
+        for (int _mP = 0; _mP <= max.size() - 1; _mP ++)
+            _max[_mP] = max.get(_mP);
+
+        double[] _mode = new double[xPoints.length];
+        for (int _mM = 0; _mM <= mode.size() - 1; _mM ++)
+            _mode[_mM] = mode.get(_mM);
+
+        System.out.println("\t\tMaxes: " + Arrays.toString(_max));
+        System.out.println("\t\tModes: " + Arrays.toString(_mode));
+
+        // Max and mode trend line equation
+        PolynomialSplineFunction ApacheMaxEquation = new LinearInterpolator().interpolate(xPoints, _max);
+        PolynomialSplineFunction ApacheModeEquation = new LinearInterpolator().interpolate(xPoints, _mode);
+
+        Equation maxEquation = new Equation(ApacheMaxEquation);
+        Equation modeEquation = new Equation(ApacheModeEquation);
+
+        System.out.println("\t\t\tMax Equation: " + maxEquation);
+        System.out.println("\t\t\tMode Equation: " + modeEquation);
+
+        pgbLoadedTrendFiles.setValue(0);
+
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("Loaded and created trend in " + duration + "ms");
 
-        ArrayList<Double> min = new ArrayList<Double>();
-        ArrayList<Double> max = new ArrayList<Double>();
-        ArrayList<Double> average = new ArrayList<Double>();
+        // Create a new JDialog to display the new data
+        {
+            JDialog trendData = new JDialog();
+            trendData.setAlwaysOnTop(true);
+            trendData.setSize(500, 380);
+            trendData.setLayout(null);
 
-        // Loop through all trend logs
-        for (LogFileData l : OI.trendLogs) {
-            //Find min, max, and average, and curve fit.
-            for (DataPoint point : l.PointData) {
+            XYSeries maxTrendKnown = new XYSeries("Max Trend Known", false);
+            for (int maxTrendKnownPoint = 0; maxTrendKnownPoint <= _max.length - 1; maxTrendKnownPoint++)
+                maxTrendKnown.add(maxTrendKnownPoint + 1, _max[maxTrendKnownPoint]);
 
+            XYSeries modeTrendKnown = new XYSeries("Mode Trend Known", false);
+            for (int modeTrendKnownPoint = 0; modeTrendKnownPoint <= _mode.length - 1; modeTrendKnownPoint++)
+                modeTrendKnown.add(modeTrendKnownPoint + 1, _mode[modeTrendKnownPoint]);
+
+            XYSeries maxTrendFuture = new XYSeries("Max Trend Calculated", false);
+            maxTrendFuture.add(maxTrendKnown.getDataItem(modeTrendKnown.getItemCount() - 1));
+            for (int maxFuture = 1; maxFuture <= futureAnalysis; maxFuture++)
+                maxTrendFuture.add(_max.length + maxFuture, maxEquation.value(_max.length + maxFuture));
+
+            XYSeries modeTrendFuture = new XYSeries("Mode Trend Calculated", false);
+            modeTrendFuture.add(modeTrendKnown.getDataItem(modeTrendKnown.getItemCount() - 1));
+            for (int modeFuture = 1; modeFuture <= futureAnalysis; modeFuture++)
+                modeTrendFuture.add(_mode.length + modeFuture, modeEquation.value(_max.length + modeFuture));
+
+            XYSeriesCollection trendDataCollection = new XYSeriesCollection();
+            trendDataCollection.addSeries(maxTrendKnown);
+            trendDataCollection.addSeries(modeTrendKnown);
+            trendDataCollection.addSeries(maxTrendFuture);
+            trendDataCollection.addSeries(modeTrendFuture);
+
+            JFreeChart trendMotorChart;
+            ChartPanel trendMotorPanel;
+
+            trendMotorChart = ChartFactory.createXYLineChart(
+                    "",
+                    "",
+                    "",
+                    trendDataCollection,
+                    PlotOrientation.VERTICAL,
+                    true,
+                    false,
+                    false
+            );
+            trendMotorChart.setBackgroundPaint(getBackground());
+
+            trendMotorPanel = new ChartPanel(trendMotorChart);
+            trendMotorPanel.setSize(450, 300);
+            trendMotorPanel.setLocation(10, 10);
+            trendData.add(trendMotorPanel);
+
+            switch (TREND_TYPE) {
+                case 0:
+                    trendData.setTitle("Left Motor Voltage Trend");
+                    break;
             }
+
+            trendData.setVisible(true);
         }
 
     }
@@ -1000,6 +1184,9 @@ class DiagnosticViewer extends JFrame{
 
         rightMotorSeriesCurrent_1.clear();
         rightMotorSeriesVoltage_1.clear();
+
+        liftMotorCurrent.clear();
+        liftMotorVoltage.clear();
 
         locationSeries.clear();
 
