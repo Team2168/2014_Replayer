@@ -1,7 +1,5 @@
 package org.team2168.DiagnosticTools;
 
-import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
-import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -10,6 +8,8 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.data.xy.XYSeriesCollection;
+
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.stat.StatUtils;
 
@@ -426,7 +426,7 @@ public class DiagnosticTools {
 }
 
 /**
- * Class used for calculating the tred line equation
+ * Class used for calculating the trend line equation
  */
 class Equation{
 
@@ -444,7 +444,11 @@ class Equation{
             c[C] = p.getPolynomials()[C].getCoefficients()[0];
 
         for (int M = 0; M <= m.length - 1; M++)
-            m[M] = p.getPolynomials()[M].getCoefficients()[1];
+            try {
+                m[M] = p.getPolynomials()[M].getCoefficients()[1];
+            }catch (ArrayIndexOutOfBoundsException ex) {
+                m[M] = 0;
+            }
 
         b = mean(c);
         x = mean(m);
@@ -567,7 +571,7 @@ class DiagnosticViewer extends JFrame{
     ValueAxis leftMotorScale;
 
     // Trend Options
-    private int futureAnalysis = 2;
+    private int futureAnalysis = 7;
 
     /**
      * Default Constructor
@@ -680,7 +684,7 @@ class DiagnosticViewer extends JFrame{
     public void CalculateTrendData(ArrayList<String> TrendFiles, int TREND_TYPE) {
 
         System.out.println("Calculating trend data...");
-
+        OI.trendLogs.clear();
         int count = 1;
         long startTime = System.nanoTime();
         for (String fileName : TrendFiles) {
@@ -708,7 +712,6 @@ class DiagnosticViewer extends JFrame{
             for (DataPoint point : l.PointData) {
                 switch (TREND_TYPE) {
                     case 0:
-                        // Calculate
                         if (_max < point.getLeftVoltage()[0])
                             _max = point.getLeftVoltage()[0];
 
@@ -716,7 +719,24 @@ class DiagnosticViewer extends JFrame{
                             _mode[_modeIndexValue] = point.getLeftVoltage()[0];
                             _modeIndexValue++;
                         }
+                        break;
+                    case 1:
+                        if (_max < point.getLeftCurrent()[0])
+                            _max = point.getLeftCurrent()[0];
 
+                        if (point.getLeftCurrent()[0] > 1) {
+                            _mode[_modeIndexValue] = point.getLeftCurrent()[0];
+                            _modeIndexValue++;
+                        }
+                        break;
+                    case 2:
+                        if (_max < point.getRightVoltage()[0])
+                            _max = point.getRightVoltage()[0];
+
+                        if (point.getRightVoltage()[0] > 1) {
+                            _mode[_modeIndexValue] = point.getRightVoltage()[0];
+                            _modeIndexValue++;
+                        }
                         break;
                 }
             }
@@ -816,6 +836,12 @@ class DiagnosticViewer extends JFrame{
             switch (TREND_TYPE) {
                 case 0:
                     trendData.setTitle("Left Motor Voltage Trend");
+                    break;
+                case 1:
+                    trendData.setTitle("Left Motor Current Trend");
+                    break;
+                case 2:
+                    trendData.setTitle("Right Motor Voltage Trend");
                     break;
             }
 
@@ -979,6 +1005,7 @@ class DiagnosticViewer extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
                 trendAnalysis.setVisible(true);
+                trendAnalysis.setLocationRelativeTo(self);
             }
         });
         btnTrendAnalysis.setSize(264, 25);
