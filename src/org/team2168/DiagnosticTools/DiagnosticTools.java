@@ -38,6 +38,7 @@ class LogFileData {
      * Converts all X data to Float array
      * @return Float array of X Data
      */
+    //Score 200 Points TYBG
     public float[] PointDataTo1DFloat_X(){
         float[] returnData = new float[PointData.size()];
 
