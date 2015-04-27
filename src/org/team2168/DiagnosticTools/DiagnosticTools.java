@@ -15,6 +15,7 @@ import org.apache.commons.math3.stat.StatUtils;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -22,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -31,14 +33,13 @@ class OI {
 }
 
 class LogFileData {
-    public String[] TrendData;
+    //public String[] TrendData;
     public ArrayList<DataPoint> PointData = new ArrayList<DataPoint>();
 
     /**
      * Converts all X data to Float array
      * @return Float array of X Data
      */
-    //Score 200 Points TYBG
     public float[] PointDataTo1DFloat_X(){
         float[] returnData = new float[PointData.size()];
 
@@ -107,14 +108,22 @@ class DataPoint {
     public double[] RightCurrent;
 
     public double LiftVoltage;
-
     public double LiftCurrent;
-
     public double DeltaTime;
-
+    
+    public double LiftPosition;
+    
+    public boolean Enabled;
+    public boolean Disabled;
+    public boolean Auto;
+    public boolean Teleop;
+    
+    public double MatchTime;
+    
     public DataPoint(double x, double y, double leftSpeed, double heading, double rightSpeed, double[] leftVoltage,
                      double[] rightVoltage, double[] leftCurrent, double[] rightCurrent, double timeElapsed,
-                     double liftVoltage, double liftCurrent, double deltaTime) {
+                     double liftVoltage, double liftCurrent, double liftPosition, double deltaTime, boolean disabled, boolean enabled, 
+                     boolean auto, boolean teleop, double matchTime) {
         X = x;
         Y = y;
         LeftSpeed = leftSpeed;
@@ -128,6 +137,12 @@ class DataPoint {
         LiftVoltage = liftVoltage;
         LiftCurrent = liftCurrent;
         DeltaTime = deltaTime;
+        Enabled = enabled;
+        Disabled = disabled;
+        Auto = auto;
+        Teleop = teleop;
+        LiftPosition = liftPosition;
+        MatchTime = matchTime;
     }
 
     public double getDeltaTime() {
@@ -178,6 +193,35 @@ class DataPoint {
     public double getX() {
         return X;
     }
+
+	public double getTimeElapsed() {
+		return TimeElapsed;
+	}
+
+	public boolean isEnabled() {
+		return Enabled;
+	}
+
+	public boolean isDisabled() {
+		return Disabled;
+	}
+
+	public boolean isAuto() {
+		return Auto;
+	}
+
+	public boolean isTeleop() {
+		return Teleop;
+	}
+    
+    public double getLiftPosition() {
+    	return LiftPosition;
+    }
+
+	public double getMatchTime() {
+		return MatchTime;
+	}
+    
 }
 
 class LogFileReader{
@@ -186,17 +230,22 @@ class LogFileReader{
     private LogFileData logFileData = new LogFileData();
 
     public int RunTime = 0;
-    public int VoltageLeftStart = 1;
-    public int VoltageRightStart = 4;
-    public int CurrentLeftStart = 7;
-    public int CurrentRightStart = 10;
-    public int SPIGyroAngle = 15;
-    public int LeftEncoderPosition = 17;
-    public int RightEncoderPosition = 19;
-    public int LiftMotorVoltage = 21;
-    public int LiftMotorCurrent = 22;
-    public int RobotState = 23;
-    public int CompressorStatus = 24;
+    public int Disabled = 2;
+    public int Enabled = 3;
+    public int Auto = 4;
+    public int Teleop = 5;
+    public int FMS = 6;
+    public int MatchTime = 7;
+    public int VoltageLeftStart = 9;
+    public int VoltageRightStart = 12;
+    public int CurrentLeftStart = 15;
+    public int CurrentRightStart = 18;
+    public int SPIGyroAngle = 21;
+    public int LeftEncoderPosition = 23;
+    public int RightEncoderPosition = 25;
+    public int LiftMotorVoltage = 26;
+    public int LiftMotorCurrent = 27;
+    public int LiftPosition = 29;
 
     public final double MinimumStartTime = 0.0;
 
@@ -212,7 +261,7 @@ class LogFileReader{
      * Loads in the log file passed in through the constructor
      */
     public LogFileData loadLog() throws IOException{
-        System.out.println("Loading " + this.logFileLocation);
+        System.out.println("\tLoading " + this.logFileLocation);
 
         // Load in log file
         BufferedReader br = new BufferedReader(new FileReader(this.logFileLocation));
@@ -237,7 +286,7 @@ class LogFileReader{
         double prevTime = 0;
 
         // Get Header and put it into the TrendAnalysis Variable
-        logFileData.TrendData = logData.split("\n")[0].split("\t");
+        //logFileData.TrendData = logData.split("\n")[0].split("\t");
 
         // Interpret Data
         for (String loggedData : logData.split("\n")) {
@@ -287,10 +336,11 @@ class LogFileReader{
                     // Get total distance traveled by averaging left and right distances
                     double totalDistanceTraveled = (leftDistanceTraveled + rightDistanceTraveled) / 2;
 
-                    //Get lift voltage and current
+                    //Get lift voltage and current and position
                     double liftVoltage = Double.parseDouble(entryData[LiftMotorVoltage]);
                     double liftCurrent = Double.parseDouble(entryData[LiftMotorCurrent]);
-
+                    double liftPosition = Double.parseDouble(entryData[LiftPosition]);
+                    
                     // Convert distances to feet
                     leftDistanceTraveled /= 12;
                     rightDistanceTraveled /= 12;
@@ -311,10 +361,18 @@ class LogFileReader{
                     double x = prevX + calculateX(totalDistanceTraveled, heading, direction, timeDifference);
                     double y = prevY + calculateY(totalDistanceTraveled, heading, direction, timeDifference);
 
+                    // Checks to see the state of the robot
+                    boolean disabled = Boolean.parseBoolean(entryData[Disabled]);
+                    boolean enabled = Boolean.parseBoolean(entryData[Enabled]);
+                    boolean auto = Boolean.parseBoolean(entryData[Auto]);
+                    boolean teleop = Boolean.parseBoolean(entryData[Teleop]);
+                    
+                    double matchTime = Double.parseDouble(entryData[MatchTime]);
+                    
                     // Add the log data
                     logFileData.PointData.add(new DataPoint(x, y, leftFeetPerSecond, heading, rightFeetPerSecond,
                             leftVoltage, rightVoltage, leftCurrent, rightCurrent,
-                            Double.parseDouble(entryData[RunTime]), liftVoltage, liftCurrent, timeDifference));
+                            Double.parseDouble(entryData[RunTime]), liftVoltage, liftCurrent, liftPosition, timeDifference, disabled, enabled, auto, teleop, matchTime));
 
                     prevX = x;
                     prevY = y;
@@ -328,13 +386,13 @@ class LogFileReader{
     }
 
     /**
-     * Calculates the new point based on distance tr
+     * Calculates the new point based on distance traveled
      * @param totalDistanceTraveled Total distance traveled
      * @param heading Heading in degrees
      * @return New X value
      */
     public static double calculateX(double totalDistanceTraveled, double heading, boolean direction, double deltaT) {
-        // (1/2) * distance^2 * Cos(heading)
+        // (1/2) * distance^2 * Cos(heading) * deltaTime
         if (direction) {
             double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
             double p_2 = Math.cos(Math.toRadians(heading));
@@ -353,6 +411,7 @@ class LogFileReader{
      * @return New Y value
      */
     public static double calculateY(double totalDistanceTraveled, double heading, boolean direction, double deltaT) {
+    	// (1/2) * distance^2 * Sin(heading) * deltaTime
         if (direction) {
             double p_1 = 0.5 * Math.pow(totalDistanceTraveled, 2);
             double p_2 = Math.sin(Math.toRadians(heading));
@@ -393,6 +452,7 @@ public class DiagnosticTools {
             ID = userInput.nextInt();
         } catch (InputMismatchException ex) {
             System.err.println("NaN Exception Occurred. Please enter valid ID");
+            userInput.close();
             System.exit(0x002);
         }
 
@@ -408,9 +468,26 @@ public class DiagnosticTools {
         long endTime = System.nanoTime();
         long duration = (endTime - startTime) / 1000000;
         System.out.println("Loaded log file in " + duration + "ms");
-
-        new DiagnosticViewer();
-
+        
+        // Display options in an orderly fashion
+        String[] options = {"Run Diagnostic Viewer", "Convert To Binary File"};
+        System.out.println("\nChoose an action:");
+        for (int o = 0; o <= options.length - 1; o++){
+        	System.out.println("\t " + o + " : " + options[o]);
+        }
+        System.out.print("Action ID: ");
+        int action = userInput.nextInt();
+        userInput.close();
+        
+        // Based on the action picked do the action
+        switch (action) {
+        	case 0:
+                new DiagnosticViewer();
+        		break;
+        	case 1:
+        		BinaryLog.textLogToBinaryLog(OI.mainLog, LogFiles.get(ID).replace("-Log.txt", ""));
+        		break;
+        }
     }
 
     /**
@@ -424,18 +501,56 @@ public class DiagnosticTools {
         File folder = new File("./logs/");
         File[] listOfFiles = folder.listFiles();
         for (int i = 0; i < listOfFiles.length; i++) {
-            if (listOfFiles[i].isFile()) {
+            if (listOfFiles[i].isFile() && LogFileValid(listOfFiles[i].getPath())) {
                 LogFiles.add(listOfFiles[i].getName());
+            }else {   
+            	try {
+					Files.delete(listOfFiles[i].toPath());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
             }
         }
 
         return LogFiles;
     }
+    
+    /**
+     * Checks the FMS field value. If "True" log file is valid
+     * @return True if log file was connected to FMS
+     */
+    public static boolean LogFileValid(String path) {
+    	boolean isFMSConnected = false;
+
+    	String line = null;
+    	try {
+        	BufferedReader reader = new BufferedReader(new FileReader(path));
+			while ((line = reader.readLine()) != null) {
+				line = reader.readLine();
+				break;
+			}
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	
+    	try {
+			logFileReader = new LogFileReader("");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+    	
+    	if (line.split("\t")[logFileReader.FMS].equals("true")) {
+    		isFMSConnected = true;
+    	}
+    	
+    	return isFMSConnected;
+    }
 
 }
 
 /**
- * Class used for calculating the tred line equation
+ * Class used for calculating the trend line equation
  */
 class Equation{
 
@@ -500,16 +615,20 @@ class Equation{
  * Diagnostic Tools Viewer
  */
 class DiagnosticViewer extends JFrame{
+	
+	private static final long serialVersionUID = 3063904081522287978L;
 
-    private final JFrame self = this;
-
+	private final JFrame self = this;
+	
     private static final int WIDTH = 1024;
     private static final int HEIGHT = 720;
-
+    
     // ******* Dialogs ******** \\
     private JDialog optionsDialog;
     private JDialog trendAnalysis;
-
+    @SuppressWarnings("unused")
+	private JDialog sensorsProfile;
+    
     // ******* Misc Objects ******* \\
     private JSlider timeProfile;
 
@@ -518,13 +637,10 @@ class DiagnosticViewer extends JFrame{
     private JLabel gyroAngle;
     private JLabel optionsDialogFrameDelay;
     private JLabel optionsGlobalMotorScaleDomain;
-    private JLabel optionsTrendFutureAnalysis;
     private JLabel trendAnalysisSelectTrend;
     private JLabel trendFilesToBeAnalyzed;
-    private JLabel lbCompressorStatus;
-    private JLabel lbRobotState;
-
-
+    private JLabel matchTime;
+    
     // ******* TextAreas ******* \\
     private JTextField optionsDialogFrameDelayInput;
     private JTextField optionsDialogGlobalMotorScaleDomain;
@@ -536,12 +652,14 @@ class DiagnosticViewer extends JFrame{
     private JButton btnTrendAnalysis;
     private JButton btnOptionsDialogOK;
     private JButton btnOptionsResetPlayBack;
-
+    private JButton btnCheckSensors;
+    
     // ******* Progress Bar ******* \\
     private JProgressBar pgbLoadedTrendFiles;
 
     // ******* Combo Boxes ******* \\
-    private JComboBox cbTrendData;
+    @SuppressWarnings("rawtypes")
+	private JComboBox cbTrendData;
 
     // ******* Charts ******** \\
     // Location Chart
@@ -642,7 +760,8 @@ class DiagnosticViewer extends JFrame{
     /**
      * Setup Trend Analysis Dialog
      */
-    public void SetUpTrendAnalysis() {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	public void SetUpTrendAnalysis() {
 
         final ArrayList<String> TrendFiles = GetTrendFiles();
 
@@ -694,12 +813,13 @@ class DiagnosticViewer extends JFrame{
 
     /**
      * Calculates trend data between
-     * @param TrendFiles List of files to analise a trend on.
+     * @param TrendFiles List of files to analyze a trend on.
      */
     public void CalculateTrendData(ArrayList<String> TrendFiles, int TREND_TYPE) {
 
         System.out.println("Calculating trend data...");
-
+        OI.trendLogs.clear();
+        
         int count = 1;
         long startTime = System.nanoTime();
         for (String fileName : TrendFiles) {
@@ -881,7 +1001,7 @@ class DiagnosticViewer extends JFrame{
             switch (TREND_TYPE) {
                 case 0:
                     trendData.setTitle("Left Motor Voltage Trend");
-                    break;
+                    break;      
             }
 
             trendData.setVisible(true);
@@ -889,6 +1009,10 @@ class DiagnosticViewer extends JFrame{
 
     }
 
+    public void SetUpSensorProfiles() {
+    	
+    }
+    
     /**
      * Creates and sets up the options
      */
@@ -973,9 +1097,7 @@ class DiagnosticViewer extends JFrame{
         currentTime.setSize(currentTime.getPreferredSize().getSize());
         currentTime.setLocation(850, 10);
         add(currentTime);
-
-
-
+        
         timeProfile = new JSlider(JSlider.HORIZONTAL, 0, OI.mainLog.GetTotalFramesCaptured() - 1, 0);
         timeProfile.setMajorTickSpacing(40);
         timeProfile.setPaintTicks(true);
@@ -1022,6 +1144,7 @@ class DiagnosticViewer extends JFrame{
                 isPaused = true;
             }
         });
+        
         btnPause.setSize(btnPause.getPreferredSize().getSize());
         btnPause.setLocation(105, 10);
         add(btnPause);
@@ -1046,12 +1169,24 @@ class DiagnosticViewer extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
                 trendAnalysis.setVisible(true);
+            	trendAnalysis.setLocationRelativeTo(self);
             }
         });
         btnTrendAnalysis.setSize(264, 25);
         btnTrendAnalysis.setLocation(10, 40);
         add(btnTrendAnalysis);
 
+        btnCheckSensors = new JButton("Generate Sensors Profile");
+        btnCheckSensors.addActionListener(new ActionListener() {			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+			}
+		});
+        btnCheckSensors.setSize(264, 25);
+        btnCheckSensors.setLocation(10, 70);
+        add(btnCheckSensors);
+        
         // Gyro Angle Label
         gyroAngle = new JLabel("Gyro Angle: 0\u00B0");
         gyroAngle.setFont(gyroAngle.getFont().deriveFont(12f));
@@ -1059,6 +1194,13 @@ class DiagnosticViewer extends JFrame{
         gyroAngle.setLocation(485, 450);
         add(gyroAngle);
 
+        // Match Time Label
+        matchTime = new JLabel("Match Time: ??");
+        matchTime.setFont(new Font("Arial", Font.ITALIC, 16));
+        matchTime.setSize(matchTime.getPreferredSize().getSize());
+        matchTime.setLocation(850, 50);
+        add(matchTime);
+        
         // Location Plot Chart
         {
             // Start initializing of Robot Location Series
@@ -1232,8 +1374,7 @@ class DiagnosticViewer extends JFrame{
                 );
 
                 // Update left motor current and voltage
-                leftMotorSeriesVoltage_1.add(OI.mainLog.PointData.get(i).TimeElapsed
-                        , p.getLeftVoltage()[0]);
+                leftMotorSeriesVoltage_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getLeftVoltage()[0]);
                 leftMotorSeriesCurrent_1.add(OI.mainLog.PointData.get(i).TimeElapsed, p.getLeftCurrent()[0]);
 
                 // Update right motor current and voltage
@@ -1247,9 +1388,13 @@ class DiagnosticViewer extends JFrame{
 
                 // Gyro heading
                 DecimalFormat df = new DecimalFormat("####.00");
-                String heading = df.format(OI.mainLog.PointData.get(i).getHeading());
+                String heading = df.format(p.getHeading());
                 gyroAngle.setText("Gyro Angle: " +  heading + "\u00B0");
                 gyroAngle.setSize(gyroAngle.getPreferredSize().getSize());
+
+                String match = df.format(p.getMatchTime());
+                matchTime.setText("Match Time: " + match);
+                matchTime.setSize(matchTime.getPreferredSize().getSize());
 
                 leftDriveSpeed.add(OI.mainLog.PointData.get(i).TimeElapsed, OI.mainLog.PointData.get(i).getLeftSpeed());
                 rightDriveSpeed.add(OI.mainLog.PointData.get(i).TimeElapsed, OI.mainLog.PointData.get(i).getRightSpeed());
@@ -1294,7 +1439,7 @@ class DiagnosticViewer extends JFrame{
         rightDriveSpeed.clear();
 
         locationSeries.clear();
-
+        
     }
 
 }
